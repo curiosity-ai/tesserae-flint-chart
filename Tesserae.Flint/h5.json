@@ -1,0 +1,73 @@
+{
+    "outputFormatting": "Both",
+    "resources": [
+        {
+            "name": "Tesserae.Flint.js",
+            "files": [ "$(OutDir)h5/Tesserae.Flint.js" ]
+        },
+        {
+            "name": "Tesserae.Flint.meta.js",
+            "files": [ "$(OutDir)h5/Tesserae.Flint.meta.js" ]
+        },
+        {
+            "name": "Tesserae.Flint.min.js",
+            "files": [ "$(OutDir)h5/Tesserae.Flint.min.js" ]
+        },
+        {
+            "name": "Tesserae.Flint.meta.min.js",
+            "files": [ "$(OutDir)h5/Tesserae.Flint.meta.min.js" ]
+        },
+        // The flint-chart compiler, bundled by build/bundle.mjs into a browser global
+        // (window.flint). The ".dontload" suffix keeps H5 from injecting these into
+        // index.html; they're extracted to assets/js/flint and loaded on demand via
+        // Require.LoadScriptAsync after the suffix is stripped (Mosaik FrontEndWatcher
+        // in production, scripts/strip-dontload.mjs for the sample app).
+        {
+            "name": "flint-chart.min.js.dontload",
+            "files": [ "assets/js/flint-chart.min.js" ],
+            "output": "assets/js/flint"
+        },
+        // Renderer runtimes (vendored UMD builds, minified only — see build/bundle.mjs).
+        {
+            "name": "vega.min.js.dontload",
+            "files": [ "assets/js/vega.min.js" ],
+            "output": "assets/js/flint"
+        },
+        {
+            "name": "vega-lite.min.js.dontload",
+            "files": [ "assets/js/vega-lite.min.js" ],
+            "output": "assets/js/flint"
+        },
+        {
+            "name": "vega-embed.min.js.dontload",
+            "files": [ "assets/js/vega-embed.min.js" ],
+            "output": "assets/js/flint"
+        },
+        {
+            "name": "echarts.min.js.dontload",
+            "files": [ "assets/js/echarts.min.js" ],
+            "output": "assets/js/flint"
+        },
+        {
+            "name": "chart.umd.min.js.dontload",
+            "files": [ "assets/js/chart.umd.min.js" ],
+            "output": "assets/js/flint"
+        }
+    ],
+    "cleanOutputFolderBeforeBuildPattern": "*.*",
+    "loader": { "type": "Global" },
+    "generateTypeScript": false,
+    "generateDocumentation": "None",
+    "rules": {
+        "anonymousType": "Plain",
+        "arrayIndex": "Managed",
+        "autoProperty": "Plain",
+        "boxing": "Managed",
+        "externalCast": "Plain",
+        "inlineComment": "Plain",
+        "integer": "Managed",
+        "lambda": "Plain",
+        "useShortForms": true
+    },
+    "sourceMap": { "enabled": false }
+}
