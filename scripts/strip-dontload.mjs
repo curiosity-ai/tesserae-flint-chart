@@ -22,8 +22,18 @@ async function walk(dir) {
     const p = join(dir, e.name);
     if (e.isDirectory()) await walk(p);
     else if (e.name.endsWith('.dontload')) {
+      if (!e.isFile()) {
+        console.warn(`strip-dontload: skipping non-file ${p}`);
+        continue;
+      }
       const target = p.slice(0, -'.dontload'.length);
-      await rm(target, { force: true });
+      const existed = await stat(target).then(() => true, () => false);
+      if (existed) {
+        // The un-suffixed file should never be emitted next to its .dontload
+        // resource — if it is, the upstream packaging is misconfigured.
+        console.warn(`strip-dontload: ${target} already existed (upstream packaging bug?), overwriting`);
+        await rm(target, { force: true });
+      }
       await rename(p, target);
       console.log(`stripped: ${target}`);
     }

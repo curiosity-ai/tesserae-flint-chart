@@ -1,0 +1,15 @@
+{
+  "data": {
+    "values": [
+      { "cat": "A", "val": 30 },
+      { "cat": "B", "val": 55 },
+      { "cat": "C", "val": 43 }
+    ]
+  },
+  "semantic_types": { "cat": "Category", "val": "Quantity" },
+  "chart_spec": {
+    "chartType": "Bar Chart",
+    "encodings": { "x": { "field": "cat" }, "y": { "field": "val" } },
+    "baseSize": { "width": 400, "height": 300 }
+  }
+}

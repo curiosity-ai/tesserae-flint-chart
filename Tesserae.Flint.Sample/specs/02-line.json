@@ -1,0 +1,16 @@
+{
+  "data": {
+    "values": [
+      { "month": "2025-01", "rev": 12 },
+      { "month": "2025-02", "rev": 18 },
+      { "month": "2025-03", "rev": 15 },
+      { "month": "2025-04", "rev": 24 }
+    ]
+  },
+  "semantic_types": { "month": "Month", "rev": "Price" },
+  "chart_spec": {
+    "chartType": "Line Chart",
+    "encodings": { "x": { "field": "month" }, "y": { "field": "rev" } },
+    "baseSize": { "width": 400, "height": 300 }
+  }
+}

@@ -18,9 +18,17 @@
     <ProjectReference Include="..\Tesserae.Flint\Tesserae.Flint.csproj" />
   </ItemGroup>
 
+  <!-- Regenerate src/SampleSpecs.g.cs from specs/*.json (the single source of
+       truth, also globbed directly by the spec tests). The generated file is
+       committed so IDE-only builds without node still work; when the generator
+       does run, any failure fails the build (no ContinueOnError). -->
+  <Target Name="GenerateSampleSpecs" BeforeTargets="BeforeBuild">
+    <Exec Command="node ../scripts/generate-sample-specs.mjs" WorkingDirectory="$(MSBuildProjectDirectory)" />
+  </Target>
+
   <!-- The .dontload resources are extracted verbatim; rename them so the dev
        server can serve the real .js files (Mosaik does this server-side). -->
   <Target Name="StripDontload" AfterTargets="Build">
-    <Exec Command="node ../scripts/strip-dontload.mjs $(OutDir)h5" ContinueOnError="true" />
+    <Exec Command="node ../scripts/strip-dontload.mjs $(OutDir)h5" />
   </Target>
 </Project>

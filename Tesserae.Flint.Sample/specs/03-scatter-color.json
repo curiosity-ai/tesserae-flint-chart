@@ -1,0 +1,25 @@
+{
+  "data": {
+    "values": [
+      { "weight": 2130, "mpg": 30.5, "origin": "Japan" },
+      { "weight": 2670, "mpg": 27.2, "origin": "Japan" },
+      { "weight": 1985, "mpg": 33.8, "origin": "Japan" },
+      { "weight": 3563, "mpg": 16.0, "origin": "USA" },
+      { "weight": 4100, "mpg": 13.5, "origin": "USA" },
+      { "weight": 2950, "mpg": 21.4, "origin": "USA" },
+      { "weight": 2190, "mpg": 29.0, "origin": "Germany" },
+      { "weight": 2515, "mpg": 25.3, "origin": "Germany" },
+      { "weight": 3020, "mpg": 20.1, "origin": "Germany" }
+    ]
+  },
+  "semantic_types": { "weight": "Quantity", "mpg": "Quantity", "origin": "Country" },
+  "chart_spec": {
+    "chartType": "Scatter Plot",
+    "encodings": {
+      "x":     { "field": "weight" },
+      "y":     { "field": "mpg" },
+      "color": { "field": "origin" }
+    },
+    "baseSize": { "width": 400, "height": 300 }
+  }
+}
