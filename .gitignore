@@ -7,6 +7,8 @@ node_modules/
 dist/
 dist-deploy/
 build/
+# Tesserae.Flint/build holds committed bundling scripts, not build output
+!Tesserae.Flint/build/
 *.tsbuildinfo
 .tsup/
 
