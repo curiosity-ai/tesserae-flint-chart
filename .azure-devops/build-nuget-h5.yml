@@ -8,6 +8,7 @@ trigger:
   paths:
     include:
       - Tesserae.Flint/*
+      - Tesserae.Flint.Sample/*
       - packages/flint-js/*
       - .azure-devops/build-nuget-h5.yml
 

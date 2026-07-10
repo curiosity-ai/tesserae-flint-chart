@@ -21,7 +21,6 @@ namespace Tesserae.Flint
         private string       _fontFamily;      // optional Google Font to load before rendering
         private object       _instance;        // echarts instance / Chart instance / vega-embed result
         private FlintBackend _instanceBackend; // backend the live instance was created with (for correct dispose)
-        private HTMLElement  _instanceHost;    // per-render child div the live instance rendered into
         private Action<FlintChart, object> _onRendered;
         private Action<FlintChart, string> _onError;
         private int _renderVersion;              // guards against out-of-order async renders
@@ -150,7 +149,7 @@ namespace Tesserae.Flint
                         var option = Script.Write<object>("window.flint.assembleECharts({0})", input);
                         var chart  = Script.Write<object>("window.echarts.init({0})", host);
                         Script.Write("{0}.setOption({1})", chart, option);
-                        _instance = chart; _instanceBackend = _backend; _instanceHost = host;
+                        _instance = chart; _instanceBackend = _backend;
 
                         // ECharts snapshots the container size at init and never observes it,
                         // so keep it in sync (also recovers from a 0x0 init while hidden).
@@ -167,7 +166,7 @@ namespace Tesserae.Flint
                         var canvas = (HTMLCanvasElement)document.createElement("canvas");
                         host.appendChild(canvas);
                         _instance = Script.Write<object>("new window.Chart({0}, {1})", canvas, config);
-                        _instanceBackend = _backend; _instanceHost = host;
+                        _instanceBackend = _backend;
                         break;
                     }
                     default: // VegaLite
@@ -191,7 +190,7 @@ namespace Tesserae.Flint
                             RemoveOrphanHost(host);
                             return;
                         }
-                        _instance = result; _instanceBackend = _backend; _instanceHost = host;
+                        _instance = result; _instanceBackend = _backend;
                         break;
                     }
                 }
@@ -268,7 +267,6 @@ namespace Tesserae.Flint
                 _resizeObserver.unobserve(_container);
                 _resizeObserver = null;
             }
-            _instanceHost = null;
             if (_instance == null) return;
             switch (_instanceBackend)
             {
