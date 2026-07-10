@@ -24,9 +24,14 @@ const common = {
   entryPoints: [entry],
   bundle: true,
   format: 'iife',
-  globalName: 'window.flint',
+  // NOT 'window.flint': a dotted globalName makes esbuild emit
+  // `window = window || {}` which throws in browsers (window is getter-only).
+  // A plain name + explicit footer assignment works in browsers AND in the
+  // sandboxed test (where the IIFE's top-level `var flint` is function-scoped).
+  globalName: 'flint',
   target: 'es2020',
   banner: { js: '/* flint-chart — bundled for Tesserae.Flint. Exposed as window.flint. */' },
+  footer: { js: 'if (typeof window !== "undefined") { window.flint = flint; }' },
   legalComments: 'none',
   // The renderer runtimes are peer deps of flint-chart and are loaded separately.
   external: ['vega', 'vega-lite', 'vega-embed', 'echarts', 'chart.js'],
