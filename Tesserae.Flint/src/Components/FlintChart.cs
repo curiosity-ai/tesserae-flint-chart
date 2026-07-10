@@ -141,7 +141,10 @@ namespace Tesserae.Flint
         /// <summary>Throws with a clear message when the expected window global is missing after a load.</summary>
         private static void EnsureGlobal(string globalName, string what)
         {
-            if (!Script.Write<bool>("typeof window[{0}] !== 'undefined'", globalName))
+            // Invert INSIDE the interop string: H5 inlines Script.Write textually, so a C#
+            // `!Script.Write<bool>(...)` would emit `!typeof window[...] !== 'undefined'`
+            // (always true, since `!typeof x` binds first).
+            if (Script.Write<bool>("typeof window[{0}] === 'undefined'", globalName))
             {
                 throw new Exception(
                     "window." + globalName + " is missing after loading " + what +
