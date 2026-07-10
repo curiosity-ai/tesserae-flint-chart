@@ -10,6 +10,10 @@ namespace Tesserae.Flint
     /// </summary>
     internal static class FlintLibraries
     {
+        // NOTE: Tesserae's Require.LoadScriptAsync caches by URL and, on a 404, the dead
+        // <script> tag stays in the DOM — so a retry resolves successfully even though the
+        // library's global was never defined. Consumers must verify the expected window.*
+        // global after awaiting (FlintChart adds that guard).
         private const string BasePath = "./assets/js/flint/";
 
         internal static Task LoadFlintAsync() => Require.LoadScriptAsync(BasePath + "flint-chart.min.js");
@@ -29,9 +33,10 @@ namespace Tesserae.Flint
         {
             switch (backend)
             {
-                case FlintBackend.ECharts: return LoadEChartsAsync();
-                case FlintBackend.ChartJs: return LoadChartJsAsync();
-                default:                   return LoadVegaLiteAsync();
+                case FlintBackend.VegaLite: return LoadVegaLiteAsync();
+                case FlintBackend.ECharts:  return LoadEChartsAsync();
+                case FlintBackend.ChartJs:  return LoadChartJsAsync();
+                default: throw new System.ArgumentOutOfRangeException(nameof(backend), "Unknown Flint backend: " + backend);
             }
         }
     }
