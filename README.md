@@ -63,6 +63,13 @@ npx -y flint-chart-mcp
 
 <p><sub><span style="color: #6a737d;">Python package: to be released. The current Python port is a source-only preview in this repo.</span></sub></p>
 
+## Tesserae.Flint (this fork)
+
+This fork adds [`Tesserae.Flint`](Tesserae.Flint/README.md), a NuGet package
+with a Tesserae (H5 C#) component that renders flint-json across all three
+backends with lazy-loaded, package-embedded JS. See
+`Tesserae.Flint.Sample/` for a gallery app.
+
 ## Use Flint As A Library
 
 Every backend accepts the same `ChartAssemblyInput` and returns the target
