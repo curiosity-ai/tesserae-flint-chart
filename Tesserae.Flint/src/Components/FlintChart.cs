@@ -12,7 +12,10 @@ namespace Tesserae.Flint
     /// backends. The flint compiler and the selected backend runtime are
     /// lazy-loaded on first render via <see cref="FlintLibraries"/>.
     /// </summary>
-    [H5.Name("flint.FlintChart")]
+    // NOT "flint.FlintChart": the H5 namespace object would be window.flint, which the
+    // flint-chart bundle overwrites when it loads — clobbering every static member of
+    // this class mid-session. Keep the H5 namespace distinct from the bundle global.
+    [H5.Name("tssFlint.FlintChart")]
     public class FlintChart : IComponent, ISpecialCaseStyling
     {
         private readonly HTMLElement _container;
