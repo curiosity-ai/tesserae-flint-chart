@@ -21,9 +21,11 @@ namespace Tesserae.Flint
         private string       _fontFamily;      // optional Google Font to load before rendering
         private object       _instance;        // echarts instance / Chart instance / vega-embed result
         private FlintBackend _instanceBackend; // backend the live instance was created with (for correct dispose)
+        private HTMLElement  _instanceHost;    // per-render child div the live instance rendered into
         private Action<FlintChart, object> _onRendered;
         private Action<FlintChart, string> _onError;
-        private int _renderVersion;             // guards against out-of-order async renders
+        private int _renderVersion;              // guards against out-of-order async renders
+        private ResizeObserver _resizeObserver;  // keeps the live ECharts instance sized to the container
 
         /// <summary>The DOM element styling helpers (<c>.W()</c>, <c>.S()</c>, …) write to.</summary>
         public HTMLElement StylingContainer => _container;
@@ -41,18 +43,30 @@ namespace Tesserae.Flint
             _container.style.height    = "100%";
             _container.style.minHeight = "240px";
 
-            DomObserver.WhenMounted(_container, () => { var _ = RenderChartAsync(); });
+            DomObserver.WhenMounted(_container, OnMounted);
         }
 
         // ── Fluent configuration ────────────────────────────────────────────
 
-        /// <summary>Selects the rendering backend (default <see cref="FlintBackend.VegaLite"/>).</summary>
+        /// <summary>
+        /// Selects the rendering backend (default <see cref="FlintBackend.VegaLite"/>) and
+        /// re-renders if mounted. Changes made while unmounted take effect on the next mount
+        /// (the component re-renders every time it re-enters the DOM).
+        /// </summary>
         public FlintChart Backend(FlintBackend backend)          { _backend = backend; Refresh(); return this; }
 
-        /// <summary>Replaces the flint-json spec and re-renders if mounted.</summary>
+        /// <summary>
+        /// Replaces the flint-json spec and re-renders if mounted. Changes made while
+        /// unmounted take effect on the next mount (the component re-renders every time it
+        /// re-enters the DOM).
+        /// </summary>
         public FlintChart Spec(string flintJson)                 { _flintJson = flintJson; Refresh(); return this; }
 
-        /// <summary>Loads the given Google Font family before the first render.</summary>
+        /// <summary>
+        /// Loads (and waits for) the given Google Font family at the start of every render,
+        /// so the chart renderer measures text with the real font. The font is fetched once
+        /// and cached by <see cref="GoogleFontLoader"/>; later renders only re-verify it.
+        /// </summary>
         public FlintChart Font(string googleFontFamily)          { _fontFamily = googleFontFamily; return this; }
 
         /// <summary>Registers a callback invoked after each successful render with the backend instance.</summary>
@@ -61,10 +75,35 @@ namespace Tesserae.Flint
         /// <summary>Registers a callback invoked with the error message when a render fails.</summary>
         public FlintChart OnError(Action<FlintChart, string> handler)    { _onError = handler; return this; }
 
-        /// <summary>Re-compiles and re-renders (no-op until the component is mounted).</summary>
+        /// <summary>
+        /// Re-compiles and re-renders. No-op while unmounted — but the component always
+        /// re-renders on (re)mount, so pending <see cref="Spec"/>/<see cref="Backend"/>
+        /// changes are picked up then.
+        /// </summary>
         public void Refresh()
         {
             if (Script.Write<bool>("{0}.isConnected === true", _container)) { var _ = RenderChartAsync(); }
+        }
+
+        // ── Mount / unmount lifecycle ───────────────────────────────────────
+        //
+        // Tesserae's DomObserver.WhenMounted/WhenRemoved callbacks are one-shot (the
+        // observer removes each entry when it fires), so we re-register the pair on
+        // every cycle: mount → render + arm WhenRemoved; removal → dispose + arm
+        // WhenMounted again. Re-rendering on every remount also picks up any
+        // Spec()/Backend() changes made while the component was detached.
+
+        private void OnMounted()
+        {
+            var _ = RenderChartAsync();
+            DomObserver.WhenRemoved(_container, OnRemoved);
+        }
+
+        private void OnRemoved()
+        {
+            _renderVersion++; // supersede any in-flight render
+            DisposeInstance();
+            DomObserver.WhenMounted(_container, OnMounted);
         }
 
         // ── Rendering ───────────────────────────────────────────────────────
@@ -72,6 +111,7 @@ namespace Tesserae.Flint
         private async Task RenderChartAsync()
         {
             var version = ++_renderVersion;
+            object rendered = null;
             try
             {
                 if (_fontFamily != null) await GoogleFontLoader.LoadAsync(_fontFamily);
@@ -94,47 +134,87 @@ namespace Tesserae.Flint
                 DisposeInstance();
                 ClearChildren(_container);
 
+                // Each render attempt gets its own host div: if an async embed (vega) is
+                // superseded mid-await it may still have appended DOM — removing the host
+                // cleans that up without touching a newer render's output.
+                var host = Div(_("tss-flintchart-host"));
+                host.style.position = "relative";
+                host.style.width    = "100%";
+                host.style.height   = "100%";
+                _container.appendChild(host);
+
                 switch (_backend)
                 {
                     case FlintBackend.ECharts:
                     {
                         var option = Script.Write<object>("window.flint.assembleECharts({0})", input);
-                        var chart  = Script.Write<object>("window.echarts.init({0})", _container);
+                        var chart  = Script.Write<object>("window.echarts.init({0})", host);
                         Script.Write("{0}.setOption({1})", chart, option);
-                        _instance = chart; _instanceBackend = _backend;
+                        _instance = chart; _instanceBackend = _backend; _instanceHost = host;
+
+                        // ECharts snapshots the container size at init and never observes it,
+                        // so keep it in sync (also recovers from a 0x0 init while hidden).
+                        _resizeObserver = new ResizeObserver((entries, obs) =>
+                        {
+                            if (_instance != null) Script.Write("try { {0}.resize(); } catch(e) {}", _instance);
+                        });
+                        _resizeObserver.observe(_container);
                         break;
                     }
                     case FlintBackend.ChartJs:
                     {
                         var config = Script.Write<object>("window.flint.assembleChartjs({0})", input);
                         var canvas = (HTMLCanvasElement)document.createElement("canvas");
-                        _container.appendChild(canvas);
+                        host.appendChild(canvas);
                         _instance = Script.Write<object>("new window.Chart({0}, {1})", canvas, config);
-                        _instanceBackend = _backend;
+                        _instanceBackend = _backend; _instanceHost = host;
                         break;
                     }
                     default: // VegaLite
                     {
                         var spec   = Script.Write<object>("window.flint.assembleVegaLite({0})", input);
-                        var result = await VegaEmbedAsync(_container, spec);
+                        object result;
+                        try
+                        {
+                            result = await VegaEmbedAsync(host, spec);
+                        }
+                        catch (Exception)
+                        {
+                            RemoveOrphanHost(host);
+                            throw;
+                        }
                         if (version != _renderVersion)
                         {
-                            // Superseded while awaiting: finalize the orphaned view and bail.
+                            // Superseded while awaiting: finalize the orphaned view and
+                            // remove the DOM it appended into our per-attempt host.
                             Script.Write("try { {0}.finalize && {0}.finalize(); } catch(e) {}", result);
+                            RemoveOrphanHost(host);
                             return;
                         }
-                        _instance = result; _instanceBackend = _backend;
+                        _instance = result; _instanceBackend = _backend; _instanceHost = host;
                         break;
                     }
                 }
 
-                _onRendered?.Invoke(this, _instance);
+                rendered = _instance;
             }
             catch (Exception ex)
             {
                 if (version != _renderVersion) return;
                 ShowError(ex.Message);
                 _onError?.Invoke(this, ex.Message);
+                return;
+            }
+
+            // Outside the render try/catch: an exception in the user callback must not
+            // tear down a successful render (or show the error card).
+            try
+            {
+                _onRendered?.Invoke(this, rendered);
+            }
+            catch (Exception cbEx)
+            {
+                console.error("FlintChart.OnRendered callback threw", cbEx);
             }
         }
 
@@ -163,6 +243,11 @@ namespace Tesserae.Flint
             return tcs.Task;
         }
 
+        private static void RemoveOrphanHost(HTMLElement host)
+        {
+            if (host.parentElement != null) host.parentElement.removeChild(host);
+        }
+
         private void ShowError(string message)
         {
             DisposeInstance();
@@ -178,6 +263,12 @@ namespace Tesserae.Flint
 
         private void DisposeInstance()
         {
+            if (_resizeObserver != null)
+            {
+                _resizeObserver.unobserve(_container);
+                _resizeObserver = null;
+            }
+            _instanceHost = null;
             if (_instance == null) return;
             switch (_instanceBackend)
             {
