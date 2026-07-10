@@ -23,9 +23,22 @@ const input = {
     baseSize: { width: 400, height: 300 },
   },
 };
-for (const fn of ['assembleVegaLite', 'assembleECharts', 'assembleChartjs']) {
+const shapeKeys = {
+  assembleVegaLite: ['mark', 'layer'], // single-view vs layered spec
+  assembleECharts: ['series'],
+  assembleChartjs: ['type', 'data'],
+};
+for (const [fn, keys] of Object.entries(shapeKeys)) {
   const spec = window.flint[fn](structuredClone(input));
-  assert.equal(typeof spec, 'object', `${fn} returned no spec`);
+  assert.ok(spec && typeof spec === 'object', `${fn} returned no spec`);
+  assert.ok(keys.some((k) => k in spec), `${fn} spec missing all of: ${keys.join(', ')}`);
+}
+
+// 2b. The compiler bundle must stay lean — a lost `external` entry would inline
+// a renderer runtime and blow well past this ceiling (currently ~380 KB).
+{
+  const s = await stat(resolve(js, 'flint-chart.min.js'));
+  assert.ok(s.size < 1_500_000, `flint-chart.min.js too large (${s.size} bytes) — renderer runtime inlined?`);
 }
 
 // 3. Vendored runtimes are present and non-trivial (> 50 KB each).

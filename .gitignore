@@ -9,6 +9,8 @@ dist-deploy/
 build/
 # Tesserae.Flint/build holds committed bundling scripts, not build output
 !Tesserae.Flint/build/
+# Debug-only artifact of `npm run bundle` (only the .min.js is shipped via h5.json)
+Tesserae.Flint/assets/js/flint-chart.js
 *.tsbuildinfo
 .tsup/
 
