@@ -6,7 +6,7 @@
   "description": "Build tooling that bundles flint-chart and vendors the renderer runtimes for the Tesserae.Flint wrapper.",
   "scripts": {
     "bundle": "node build/bundle.mjs",
-    "test": "node build/bundle.test.mjs"
+    "test": "node build/bundle.test.mjs && node test/specs.test.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.25.0",

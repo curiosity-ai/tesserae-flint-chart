@@ -1,0 +1,28 @@
+{
+  "data": {
+    "values": [
+      { "quarter": "Q1", "segment": "Enterprise", "revenue": 42 },
+      { "quarter": "Q1", "segment": "SMB",        "revenue": 28 },
+      { "quarter": "Q1", "segment": "Consumer",   "revenue": 15 },
+      { "quarter": "Q2", "segment": "Enterprise", "revenue": 48 },
+      { "quarter": "Q2", "segment": "SMB",        "revenue": 31 },
+      { "quarter": "Q2", "segment": "Consumer",   "revenue": 19 },
+      { "quarter": "Q3", "segment": "Enterprise", "revenue": 51 },
+      { "quarter": "Q3", "segment": "SMB",        "revenue": 27 },
+      { "quarter": "Q3", "segment": "Consumer",   "revenue": 22 },
+      { "quarter": "Q4", "segment": "Enterprise", "revenue": 60 },
+      { "quarter": "Q4", "segment": "SMB",        "revenue": 35 },
+      { "quarter": "Q4", "segment": "Consumer",   "revenue": 26 }
+    ]
+  },
+  "semantic_types": { "quarter": "Quarter", "segment": "Category", "revenue": "Amount" },
+  "chart_spec": {
+    "chartType": "Stacked Bar Chart",
+    "encodings": {
+      "x":     { "field": "quarter" },
+      "y":     { "field": "revenue" },
+      "color": { "field": "segment" }
+    },
+    "baseSize": { "width": 400, "height": 300 }
+  }
+}

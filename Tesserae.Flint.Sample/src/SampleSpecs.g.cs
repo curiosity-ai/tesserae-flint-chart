@@ -85,6 +85,91 @@ namespace Tesserae.Flint.Sample
     },
     ""baseSize"": { ""width"": 400, ""height"": 300 }
   }
+}"),
+            new Sample(
+                @"04 Stacked Bar",
+                @"{
+  ""data"": {
+    ""values"": [
+      { ""quarter"": ""Q1"", ""segment"": ""Enterprise"", ""revenue"": 42 },
+      { ""quarter"": ""Q1"", ""segment"": ""SMB"",        ""revenue"": 28 },
+      { ""quarter"": ""Q1"", ""segment"": ""Consumer"",   ""revenue"": 15 },
+      { ""quarter"": ""Q2"", ""segment"": ""Enterprise"", ""revenue"": 48 },
+      { ""quarter"": ""Q2"", ""segment"": ""SMB"",        ""revenue"": 31 },
+      { ""quarter"": ""Q2"", ""segment"": ""Consumer"",   ""revenue"": 19 },
+      { ""quarter"": ""Q3"", ""segment"": ""Enterprise"", ""revenue"": 51 },
+      { ""quarter"": ""Q3"", ""segment"": ""SMB"",        ""revenue"": 27 },
+      { ""quarter"": ""Q3"", ""segment"": ""Consumer"",   ""revenue"": 22 },
+      { ""quarter"": ""Q4"", ""segment"": ""Enterprise"", ""revenue"": 60 },
+      { ""quarter"": ""Q4"", ""segment"": ""SMB"",        ""revenue"": 35 },
+      { ""quarter"": ""Q4"", ""segment"": ""Consumer"",   ""revenue"": 26 }
+    ]
+  },
+  ""semantic_types"": { ""quarter"": ""Quarter"", ""segment"": ""Category"", ""revenue"": ""Amount"" },
+  ""chart_spec"": {
+    ""chartType"": ""Stacked Bar Chart"",
+    ""encodings"": {
+      ""x"":     { ""field"": ""quarter"" },
+      ""y"":     { ""field"": ""revenue"" },
+      ""color"": { ""field"": ""segment"" }
+    },
+    ""baseSize"": { ""width"": 400, ""height"": 300 }
+  }
+}"),
+            new Sample(
+                @"05 Area Multi",
+                @"{
+  ""data"": {
+    ""values"": [
+      { ""month"": ""2025-01"", ""region"": ""EMEA"", ""users"": 120 },
+      { ""month"": ""2025-02"", ""region"": ""EMEA"", ""users"": 138 },
+      { ""month"": ""2025-03"", ""region"": ""EMEA"", ""users"": 151 },
+      { ""month"": ""2025-04"", ""region"": ""EMEA"", ""users"": 149 },
+      { ""month"": ""2025-05"", ""region"": ""EMEA"", ""users"": 170 },
+      { ""month"": ""2025-01"", ""region"": ""AMER"", ""users"": 200 },
+      { ""month"": ""2025-02"", ""region"": ""AMER"", ""users"": 214 },
+      { ""month"": ""2025-03"", ""region"": ""AMER"", ""users"": 209 },
+      { ""month"": ""2025-04"", ""region"": ""AMER"", ""users"": 231 },
+      { ""month"": ""2025-05"", ""region"": ""AMER"", ""users"": 245 },
+      { ""month"": ""2025-01"", ""region"": ""APAC"", ""users"": 80 },
+      { ""month"": ""2025-02"", ""region"": ""APAC"", ""users"": 95 },
+      { ""month"": ""2025-03"", ""region"": ""APAC"", ""users"": 104 },
+      { ""month"": ""2025-04"", ""region"": ""APAC"", ""users"": 118 },
+      { ""month"": ""2025-05"", ""region"": ""APAC"", ""users"": 133 }
+    ]
+  },
+  ""semantic_types"": { ""month"": ""YearMonth"", ""region"": ""Category"", ""users"": ""Count"" },
+  ""chart_spec"": {
+    ""chartType"": ""Area Chart"",
+    ""encodings"": {
+      ""x"":     { ""field"": ""month"" },
+      ""y"":     { ""field"": ""users"" },
+      ""color"": { ""field"": ""region"" }
+    },
+    ""baseSize"": { ""width"": 400, ""height"": 300 }
+  }
+}"),
+            new Sample(
+                @"06 Pie",
+                @"{
+  ""data"": {
+    ""values"": [
+      { ""browser"": ""Chrome"",  ""share"": 64.8 },
+      { ""browser"": ""Safari"",  ""share"": 18.2 },
+      { ""browser"": ""Edge"",    ""share"": 5.4 },
+      { ""browser"": ""Firefox"", ""share"": 3.1 },
+      { ""browser"": ""Other"",   ""share"": 8.5 }
+    ]
+  },
+  ""semantic_types"": { ""browser"": ""Category"", ""share"": ""Percentage"" },
+  ""chart_spec"": {
+    ""chartType"": ""Pie Chart"",
+    ""encodings"": {
+      ""color"": { ""field"": ""browser"" },
+      ""size"":  { ""field"": ""share"" }
+    },
+    ""baseSize"": { ""width"": 400, ""height"": 300 }
+  }
 }")
         };
     }

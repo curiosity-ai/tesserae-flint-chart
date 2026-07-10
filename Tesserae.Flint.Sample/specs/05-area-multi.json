@@ -1,0 +1,31 @@
+{
+  "data": {
+    "values": [
+      { "month": "2025-01", "region": "EMEA", "users": 120 },
+      { "month": "2025-02", "region": "EMEA", "users": 138 },
+      { "month": "2025-03", "region": "EMEA", "users": 151 },
+      { "month": "2025-04", "region": "EMEA", "users": 149 },
+      { "month": "2025-05", "region": "EMEA", "users": 170 },
+      { "month": "2025-01", "region": "AMER", "users": 200 },
+      { "month": "2025-02", "region": "AMER", "users": 214 },
+      { "month": "2025-03", "region": "AMER", "users": 209 },
+      { "month": "2025-04", "region": "AMER", "users": 231 },
+      { "month": "2025-05", "region": "AMER", "users": 245 },
+      { "month": "2025-01", "region": "APAC", "users": 80 },
+      { "month": "2025-02", "region": "APAC", "users": 95 },
+      { "month": "2025-03", "region": "APAC", "users": 104 },
+      { "month": "2025-04", "region": "APAC", "users": 118 },
+      { "month": "2025-05", "region": "APAC", "users": 133 }
+    ]
+  },
+  "semantic_types": { "month": "YearMonth", "region": "Category", "users": "Count" },
+  "chart_spec": {
+    "chartType": "Area Chart",
+    "encodings": {
+      "x":     { "field": "month" },
+      "y":     { "field": "users" },
+      "color": { "field": "region" }
+    },
+    "baseSize": { "width": 400, "height": 300 }
+  }
+}
