@@ -37,7 +37,8 @@ function verbatim(text) {
 
 const samples = [];
 for (const file of files) {
-  const raw = await readFile(join(specsDir, file), 'utf8');
+  // Normalize CRLF so autocrlf checkouts regenerate byte-identical output.
+  const raw = (await readFile(join(specsDir, file), 'utf8')).replace(/\r\n/g, '\n');
   JSON.parse(raw); // validate — fail the build on malformed spec files
   samples.push({ name: displayName(file), json: raw.trimEnd() });
 }

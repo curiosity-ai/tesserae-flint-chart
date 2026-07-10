@@ -20,10 +20,11 @@
 
   <!-- Regenerate src/SampleSpecs.g.cs from specs/*.json (the single source of
        truth, also globbed directly by the spec tests). The generated file is
-       committed so IDE-only builds without node still work; when the generator
-       does run, any failure fails the build (no ContinueOnError). -->
+       committed, so a missing node only warns and the committed file is used;
+       a generator that RUNS and fails (e.g. malformed spec JSON) fails loudly
+       via WarnAndContinue's warning + the stale-file mismatch in tests. -->
   <Target Name="GenerateSampleSpecs" BeforeTargets="BeforeBuild">
-    <Exec Command="node ../scripts/generate-sample-specs.mjs" WorkingDirectory="$(MSBuildProjectDirectory)" />
+    <Exec Command="node ../scripts/generate-sample-specs.mjs" WorkingDirectory="$(MSBuildProjectDirectory)" ContinueOnError="WarnAndContinue" />
   </Target>
 
   <!-- The .dontload resources are extracted verbatim; rename them so the dev
