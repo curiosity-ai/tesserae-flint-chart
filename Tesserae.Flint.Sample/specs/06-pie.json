@@ -1,0 +1,20 @@
+{
+  "data": {
+    "values": [
+      { "browser": "Chrome",  "share": 64.8 },
+      { "browser": "Safari",  "share": 18.2 },
+      { "browser": "Edge",    "share": 5.4 },
+      { "browser": "Firefox", "share": 3.1 },
+      { "browser": "Other",   "share": 8.5 }
+    ]
+  },
+  "semantic_types": { "browser": "Category", "share": "Percentage" },
+  "chart_spec": {
+    "chartType": "Pie Chart",
+    "encodings": {
+      "color": { "field": "browser" },
+      "size":  { "field": "share" }
+    },
+    "baseSize": { "width": 400, "height": 300 }
+  }
+}

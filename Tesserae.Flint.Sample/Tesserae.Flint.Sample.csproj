@@ -1,0 +1,35 @@
+<Project Sdk="h5.target/26.3.64912">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <DefineConstants>H5</DefineConstants>
+    <AssemblyName>app</AssemblyName>
+    <RootNamespace>Tesserae.Flint.Sample</RootNamespace>
+    <LangVersion>7.2</LangVersion>
+    <MinifyLocalVariables>true</MinifyLocalVariables>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="h5" Version="26.2.64514" />
+    <PackageReference Include="h5.core" Version="26.4.580" />
+    <PackageReference Include="Tesserae" Version="2026.6.67480" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Tesserae.Flint\Tesserae.Flint.csproj" />
+  </ItemGroup>
+
+  <!-- Regenerate src/SampleSpecs.g.cs from specs/*.json (the single source of
+       truth, also globbed directly by the spec tests). The generated file is
+       committed, so a missing node only warns and the committed file is used;
+       a generator that RUNS and fails (e.g. malformed spec JSON) fails loudly
+       via WarnAndContinue's warning + the stale-file mismatch in tests. -->
+  <Target Name="GenerateSampleSpecs" BeforeTargets="BeforeBuild">
+    <Exec Command="node ../scripts/generate-sample-specs.mjs" WorkingDirectory="$(MSBuildProjectDirectory)" ContinueOnError="WarnAndContinue" />
+  </Target>
+
+  <!-- The .dontload resources are extracted verbatim; rename them so the dev
+       server can serve the real .js files (Mosaik does this server-side). -->
+  <Target Name="StripDontload" AfterTargets="Build">
+    <Exec Command="node ../scripts/strip-dontload.mjs $(OutDir)h5" />
+  </Target>
+</Project>

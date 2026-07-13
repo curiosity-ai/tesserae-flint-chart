@@ -1,0 +1,19 @@
+{
+  "name": "tesserae-flint-bundle",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Build tooling that bundles flint-chart and vendors the renderer runtimes for the Tesserae.Flint wrapper.",
+  "scripts": {
+    "bundle": "node build/bundle.mjs",
+    "test": "node build/bundle.test.mjs && node test/specs.test.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "vega": "^6.1.2",
+    "vega-lite": "^6.1.0",
+    "vega-embed": "^7.0.2",
+    "echarts": "^6.0.0",
+    "chart.js": "^4.4.9"
+  }
+}
