@@ -182,7 +182,7 @@ const layoutStep = (): Spec => ({
     color: {
       aggregate: 'sum', field: 'newUsers', type: 'quantitative', title: 'Net new users',
       scale: { scheme: 'redblue', domainMid: 0 },
-      legend: { format: '~s', orient: 'top', direction: 'horizontal', gradientLength: 180 },
+      legend: { format: '~s' },
     },
   },
 });

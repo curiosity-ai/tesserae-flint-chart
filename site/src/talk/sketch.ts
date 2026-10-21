@@ -167,9 +167,11 @@ export function card(ctx: Ctx, x: number, y: number, w: number, h: number, o: { 
   rect(ctx, x, y, w, h, { w: o.w ?? 3, color: o.color ?? C.ink, seed: o.seed || 0 });
 }
 
-export type FontKind = 'hand' | 'handBold' | 'mono';
+export type FontKind = 'hand' | 'handBold' | 'mono' | 'sans';
 export function font(size: number, kind: FontKind = 'hand'): string {
   if (kind === 'mono') return `500 ${size}px ui-monospace, 'SF Mono', Menlo, Consolas, monospace`;
+  // The deck's own type, for sentences that sit in a sketch but should read as text.
+  if (kind === 'sans') return `400 ${size}px 'Inter Variable', Inter, system-ui, sans-serif`;
   return `${kind === 'handBold' ? 700 : 400} ${size}px 'Kalam'`;
 }
 

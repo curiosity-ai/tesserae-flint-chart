@@ -25,6 +25,7 @@ import { chartIconFor } from './chart-icons';
 import { SelectionChips, chipText, impliedParts, partText, type SelectionChip } from './selection-chips';
 import { VIEW_SWITCH_LABEL, ViewSwitchIcon, useChartTable, type CellView } from './chart-table-view';
 import { tablePng } from './table-export';
+import { usePageScroll } from './page-scroll';
 import { conditionUpdates, selectionParts, type LinkCondition } from 'flint-chart/interactive';
 import { chartContext, chartView, type ChartGesture } from '../../src/chart-context';
 import {
@@ -611,16 +612,9 @@ export function ChartView({ app, shown, hostContext }: { app: App; shown: Board;
   }, []);
   useEffect(() => () => chartBoxObserver.current?.disconnect(), []);
 
-  // Inline, the card is sized to the chart, so the page never scrolls: a scrollbar shown while the host
-  // catches up with a new height would narrow the chart and lay it out again. In a pane the host sets
-  // the height and the chart is laid out for what the pane leaves it; the page scrolls only past that,
-  // with its gutter kept so the scrollbar never narrows the chart.
+  // In a pane the host sets the height and the chart is laid out for what the pane leaves it.
   const paned = hostContext?.displayMode === 'fullscreen' || hostContext?.displayMode === 'pip';
-  useEffect(() => {
-    document.documentElement.style.overflow = paned ? 'hidden auto' : 'hidden';
-    document.documentElement.style.scrollbarGutter = paned ? 'stable' : '';
-    document.body.style.overflow = paned ? 'visible' : 'hidden';
-  }, [paned]);
+  usePageScroll(hostContext, paned);
 
   // Re-seed when a new tool input arrives from the host.
   useEffect(() => setCurrent(input), [input]);

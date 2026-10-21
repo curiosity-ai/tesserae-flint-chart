@@ -42,7 +42,6 @@
 .talk-slide strong { color: var(--ink); font-weight: 650; }
 .talk-slide code { font: 500 0.86em/1.3 ui-monospace, 'SF Mono', Menlo, Consolas, monospace; color: var(--ink); background: var(--panel); padding: 0.06em 0.3em; border-radius: 6px; }
 .talk-lead { font-size: 34px !important; line-height: 1.4; color: var(--ink) !important; }
-.talk-quote { font-size: 32px; line-height: 1.45; color: var(--ink); font-style: italic; }
 .c-meaning { color: var(--meaning); }
 .c-look { color: var(--look); }
 .c-behavior { color: var(--behavior); }
@@ -110,10 +109,6 @@
 .talk-slide.is-title h1 { font-size: 80px; max-width: 1300px; margin-bottom: 16px; }
 .talk-slide.is-section h1 { font-size: 76px; }
 .talk-slide.is-statement h1 { font-size: 64px; max-width: 1300px; }
-.talk-bar { width: 120px; height: 10px; border-radius: 5px; margin-bottom: 32px; flex: none; }
-.talk-bar.meaning { background: var(--meaning); }
-.talk-bar.look { background: var(--look); }
-.talk-bar.behavior { background: var(--behavior); }
 
 /* A chat, as an agent client shows it. */
 .talk-chat { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 16px; background: var(--panel); border-radius: 16px; padding: 22px; }
@@ -164,14 +159,16 @@
 .talk-dashboard .idash-heading h1 { font-size: 44px; line-height: 1.1; max-width: none; }
 
 /* Call to action: one card per audience, each with its section color on top. */
-.talk-cta-wrap { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; justify-content: center; gap: 32px; }
+.talk-cta-wrap { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; justify-content: center; gap: 22px; }
+/* The three use cases, as the act 4 sketch draws them, above the card for each. */
+.talk-cta-sketch { flex: 1 1 200px; min-height: 140px; max-height: 240px; position: relative; }
 .talk-cta-wrap > .talk-cta { flex: none; align-items: stretch; gap: 28px; }
-.talk-slide .talk-collab { margin: 0; font-size: 30px; line-height: 1.45; padding: 22px 28px; }
-.talk-cta-card { background: var(--panel); border-radius: 12px; border-top: 6px solid #2f6db5; padding: 22px 26px; }
+.talk-slide .talk-collab { margin: 0; font-size: 27px; line-height: 1.4; padding: 16px 26px; }
+.talk-cta-card { background: var(--panel); border-radius: 12px; border-top: 6px solid #2f6db5; padding: 18px 24px; }
 .talk-cta-card.look { border-top-color: #e8954a; }
 .talk-cta-card.behavior { border-top-color: #d9534f; }
 .talk-cta-card h3 { margin: 0 0 14px; }
-.talk-cta-card p { font-size: 26px; line-height: 1.45; margin: 0; }
+.talk-cta-card p { font-size: 23px; line-height: 1.4; margin: 0; }
 
 /* A side-by-side demo stacked for a narrow slot: the chart on top, the table below it. */
 .talk-slide .talk-stacked-demo .ig-continent-cohort .it-workspace { grid-template-columns: minmax(0, 1fr); }
@@ -196,3 +193,38 @@
   box-shadow: 0 8px 22px rgba(0, 40, 90, 0.12); overflow: hidden;
 }
 .talk-themes-card:hover { z-index: 20 !important; }
+
+/* Labels under the use-case sketch: one column per panel, in the deck's own type. */
+.talk-usecases { flex: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px; padding: 0 3%; }
+.talk-usecases h3 { margin: 0 0 6px; text-align: center; }
+.talk-usecases p { margin: 0; font-size: 24px; line-height: 1.4; text-align: center; }
+.talk-usecases .on h3 { color: #c0392b; }
+.talk-usecases .off { opacity: 0.4; }
+
+/* The first slide of each act: its title leads with a mark, in place of a separate divider slide. */
+.talk-slide h2.is-act::before {
+  content: ''; display: inline-block; width: 0.42em; height: 0.42em; margin: 0 0.5em 0 0.06em;
+  background: #0067b8; border-radius: 3px; transform: rotate(45deg); vertical-align: 0.14em;
+}
+
+/* A callout that floats over the slide like a sticky note, out of the layout's flow. */
+.talk-slide .talk-callout {
+  position: absolute; top: 46px; right: 64px; z-index: 5; max-width: 420px; margin: 0;
+  padding: 18px 22px; border-radius: 10px; background: #fff7d6; border: 1.5px solid #e8c766;
+  color: var(--ink); font-size: 27px; line-height: 1.35; font-weight: 550;
+  box-shadow: 0 12px 28px rgba(60, 45, 0, 0.18); transform: rotate(1.6deg);
+}
+
+/* The problems circled on a chart, numbered to match its red badges. */
+.talk-flaws { flex: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px; margin: 8px 0 0; padding: 0; list-style: none; }
+.talk-flaws li { display: flex; align-items: flex-start; gap: 12px; margin: 0; font-size: 26px; line-height: 1.35; color: var(--ink); }
+.talk-flaws span { flex: none; width: 34px; height: 34px; border-radius: 50%; background: #e4572e; color: #fff; font-weight: 700; font-size: 20px; display: grid; place-items: center; }
+
+/* A sketch with text laid over it: the frame keeps the sketch's aspect, so text and lines stay aligned. */
+.talk-frame { position: absolute; inset: 0; margin: auto; max-width: 100%; max-height: 100%; container-type: size; }
+.talk-frame .talk-sketch { position: absolute; inset: 0; }
+.talk-leaf { position: absolute; transform: translateY(-50%); white-space: nowrap; font-size: 2.9cqw; color: var(--ink); line-height: 1.2; }
+.talk-leaf.mono { font: 500 1.9cqw/1.2 ui-monospace, 'SF Mono', Menlo, Consolas, monospace; }
+.talk-leaf.muted { color: var(--ink-3); }
+.talk-leaf.good { color: #3d7a27; }
+.talk-slide .talk-callout.talk-callout-inline { position: relative; top: auto; right: auto; flex: none; max-width: none; margin: 0 8px 8px; transform: rotate(-1deg); }

@@ -44,6 +44,7 @@ import { boardPng } from './board-export';
 import { SelectionChips, chipText, impliedParts, partText } from './selection-chips';
 import { ViewSwitch, useCellViews, useChartTable, type CellView } from './chart-table-view';
 import { ActionButton, ThemeControl } from './controls';
+import { usePageScroll } from './page-scroll';
 import { LINK_LAYER, conditionUpdates, gestureParts, shownFields, type ChartLink, type LinkCondition, type LinkSpec } from 'flint-chart/interactive';
 
 export interface BoardChart {
@@ -733,16 +734,8 @@ export function BoardView({ app, initial, hostContext }: { app: App; initial: Bo
     document.documentElement.style.background = style.background;
     document.body.style.background = style.background;
   }, [style.background]);
-  // Inline, the card is sized to the board, so the page never scrolls. A scrollbar would appear while the
-  // host catches up with a new height, narrow the board, lay every chart out again, and change the height
-  // again. In a pane the host sets the height, so a taller board scrolls, with its gutter kept so the
-  // scrollbar never narrows it.
   const paned = hostContext?.displayMode === 'fullscreen' || hostContext?.displayMode === 'pip';
-  useEffect(() => {
-    document.documentElement.style.overflow = paned ? 'hidden auto' : 'hidden';
-    document.documentElement.style.scrollbarGutter = paned ? 'stable' : '';
-    document.body.style.overflow = paned ? 'visible' : 'hidden';
-  }, [paned]);
+  usePageScroll(hostContext, paned);
   const byId = useMemo(() => new Map(charts.map((chart) => [chart.id, chart])), [charts]);
 
   const grid = draft ?? board.grid;

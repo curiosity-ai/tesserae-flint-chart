@@ -4,6 +4,7 @@ import { FlintChart } from 'flint-chart/react';
 import { ScaleToFit } from '../components/ScaleToFit';
 import { VegaLiteView } from '../components/VegaLiteView';
 import { SKETCHES } from './sketches';
+import { C, ellipse } from './sketch';
 import minimaps from './specs/minimaps.json';
 
 /** A live Flint chart laid out for its box: the compiler sizes it to the room, nothing spills. */
@@ -23,6 +24,80 @@ export function VegaLite({ spec }: { spec: unknown }) {
         <VegaLiteView spec={spec} renderer="svg" />
       </ScaleToFit>
     </div>
+  );
+}
+
+export type Flaw = { role: 'x-axis' | 'y-axis' | 'legend' | 'marks'; label: string };
+
+/**
+ * A Vega-Lite chart with its problems circled in red, hand-drawn over the parts Vega names (an axis,
+ * the legend, the marks), each with a short label. The rings follow the chart as it scales.
+ */
+export function FlawedVegaLite({ spec, flaws }: { spec: unknown; flaws: Flaw[] }) {
+  // Each ring carries its number; the labels are listed as text beside the chart (see FlawList).
+  const host = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const el = host.current, canvas = canvasRef.current;
+    if (!el || !canvas) return;
+    let ready = false;
+    const draw = () => {
+      const svg = el.querySelector('svg.marks, svg');
+      const w = el.clientWidth, h = el.clientHeight;
+      if (!ready || !svg || !w || !h) return;
+      const hb = el.getBoundingClientRect(), k = hb.width / w || 1;
+      const dpr = Math.max(2, window.devicePixelRatio * 1.5);
+      canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+      const ctx = canvas.getContext('2d')!;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
+      const axes = [...svg.querySelectorAll('.role-axis')].map((g) => g.getBoundingClientRect());
+      const pick = (role: Flaw['role']): DOMRect | undefined => {
+        if (role === 'legend') return svg.querySelector('.role-legend')?.getBoundingClientRect();
+        if (role === 'marks') return svg.querySelector('.role-mark')?.getBoundingClientRect();
+        // The x axis is the wide one, the y axis the tall one.
+        const sorted = [...axes].sort((a, b) => (role === 'x-axis' ? b.width / b.height - a.width / a.height : b.height / b.width - a.height / a.width));
+        return sorted[0];
+      };
+      flaws.forEach((flaw, i) => {
+        const r = pick(flaw.role);
+        if (!r) return;
+        const x = (r.left - hb.left) / k, y = (r.top - hb.top) / k, bw = r.width / k, bh = r.height / k;
+        const cx = x + bw / 2, cy = y + bh / 2;
+        ellipse(ctx, cx, cy, bw / 2 + 12, bh / 2 + 10, { w: 3, color: C.red, seed: 3000 + i * 7 });
+        // A numbered badge on the ring's upper left; the slide lists what each number means.
+        const rx = bw / 2 + 12, ry = bh / 2 + 10;
+        const bx = Math.min(Math.max(cx - rx * 0.72, 16), w - 16), by = Math.min(Math.max(cy - ry * 0.72, 16), h - 16);
+        ctx.save();
+        ctx.fillStyle = C.red; ctx.beginPath(); ctx.arc(bx, by, 15, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.font = "700 18px Inter, system-ui, sans-serif"; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(String(i + 1), bx, by + 1);
+        ctx.restore();
+      });
+      canvas.dataset.drawn = 'true';
+    };
+    void document.fonts.load("700 20px 'Kalam'").then(() => { ready = true; draw(); });
+    const ro = new ResizeObserver(draw);
+    ro.observe(el);
+    const mo = new MutationObserver(() => requestAnimationFrame(draw));
+    mo.observe(el, { childList: true, subtree: true });
+    return () => { ro.disconnect(); mo.disconnect(); };
+  }, [flaws]);
+  return (
+    <div ref={host} className="talk-fit" style={{ position: 'relative' }}>
+      <ScaleToFit height={0} fill maxScale={1.8}>
+        <VegaLiteView spec={spec} renderer="svg" />
+      </ScaleToFit>
+      <canvas ref={canvasRef} className="talk-sketch" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
+    </div>
+  );
+}
+
+/** The numbered problems a FlawedVegaLite circles, as readable text. */
+export function FlawList({ flaws }: { flaws: Flaw[] }) {
+  return (
+    <ol className="talk-flaws">
+      {flaws.map((flaw, i) => <li key={flaw.label}><span>{i + 1}</span>{flaw.label}</li>)}
+    </ol>
   );
 }
 

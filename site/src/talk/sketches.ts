@@ -180,7 +180,7 @@ export const SKETCHES: Record<string, Draw> = {
     // the two limits, shared by every row
     for (const [x, label] of [[base, 'base size'], [most, 'the most it may stretch']] as [number, string][]) {
       for (let y = 70; y < 620; y += 26) line(ctx, X(x), Y(y), X(x), Y(y + 12), { w: S(2), color: C.soft, seed: x + y, taper: false });
-      text(ctx, label, X(x), Y(52), { size: S(22), color: C.ink2, align: 'center', maxWidth: S(220) });
+      text(ctx, label, X(x), Y(52), { size: S(21), kind: 'sans', color: C.ink2, align: 'center', maxWidth: S(220) });
     }
     const rows: { y: number; n: number; wall: number; say: string; extra?: string }[] = [
       { y: 110, n: 4, wall: base, say: 'A few items: bands widen, and the plot keeps its size.' },
@@ -188,7 +188,7 @@ export const SKETCHES: Record<string, Draw> = {
       { y: 490, n: 18, wall: most, say: 'Too many: bands at their thinnest, the plot at its limit.', extra: 'the rest scroll into view' },
     ];
     rows.forEach(({ y, n, wall, say, extra }, r) => {
-      text(ctx, say, X(20), Y(y + 40), { size: S(26), color: C.ink, maxWidth: S(470), maxLines: 2 });
+      text(ctx, say, X(20), Y(y + 40), { size: S(25), kind: 'sans', color: C.ink, maxWidth: S(470), maxLines: 2, lineHeight: 1.3 });
       // the axis box
       rect(ctx, X(x0), Y(y), S(wall - x0), S(100), { w: 3, color: C.ink, seed: 400 + r });
       // bands and the springs between them
@@ -204,11 +204,11 @@ export const SKETCHES: Record<string, Draw> = {
       }
       if (r === 1) {
         arrow(ctx, X(wall + 6), Y(y + 30), X(wall + 76), Y(y + 30), { w: S(3.5), color: C.meaning, seed: 470, head: S(13) });
-        text(ctx, 'the data pushes out', X(wall + 84), Y(y + 38), { size: S(22), color: C.meaning, maxWidth: S(1430 - wall - 84) });
+        text(ctx, 'the data pushes out', X(wall + 84), Y(y + 38), { size: S(21), kind: 'sans', color: C.meaning, maxWidth: S(1430 - wall - 84) });
         arrow(ctx, X(most + 70), Y(y + 78), X(wall + 10), Y(y + 78), { w: S(3.5), color: C.look, seed: 471, head: S(13) });
-        text(ctx, 'the canvas pushes back', X(most - 150), Y(y + 128), { size: S(22), color: C.look, maxWidth: S(330) });
+        text(ctx, 'the canvas pushes back', X(most - 150), Y(y + 128), { size: S(21), kind: 'sans', color: C.look, maxWidth: S(330) });
       }
-      if (extra) text(ctx, extra, X(most + 16), Y(y + 58), { size: S(21), color: C.ink2, maxWidth: S(1430 - most - 16), maxLines: 3 });
+      if (extra) text(ctx, extra, X(most + 16), Y(y + 58), { size: S(20), kind: 'sans', color: C.ink2, maxWidth: S(1430 - most - 16), maxLines: 3 });
     });
   },
 
@@ -395,30 +395,54 @@ Object.assign(SKETCHES, {
   typesHow(ctx: Ctx, w: number, h: number) {
     pipeline(ctx, w, h, [
       { title: 'Data + types', draw: (b, x) => {
-        mono(ctx, b, 'period   newUsers', x + 40, 152, { size: 22, color: C.ink2 });
-        line(ctx, b.X(x + 36), b.Y(166), b.X(x + 364), b.Y(166), { w: b.S(2), color: C.soft, seed: 501 });
+        // The raw rows, on a soft grey wash: just numbers so far.
+        washRect(ctx, b.X(x + 26), b.Y(124), b.S(348), b.S(176), C.soft, { alpha: 0.22, seed: 500 });
+        rect(ctx, b.X(x + 26), b.Y(124), b.S(348), b.S(176), { w: b.S(1.5), color: C.soft, seed: 504 });
+        mono(ctx, b, 'period   newUsers', x + 40, 156, { size: 22, color: C.ink2 });
+        line(ctx, b.X(x + 36), b.Y(170), b.X(x + 364), b.Y(170), { w: b.S(2), color: C.soft, seed: 501 });
         [['202101', '5948'], ['202101', '-1086'], ['…', '…']].forEach(([p, v], i) => {
-          mono(ctx, b, p, x + 40, 206 + i * 40, { size: 22 });
-          mono(ctx, b, v.padStart(8), x + 196, 206 + i * 40, { size: 22, color: v.startsWith('-') ? C.red : C.ink });
+          mono(ctx, b, p, x + 40, 210 + i * 36, { size: 22 });
+          mono(ctx, b, v.padStart(8), x + 196, 210 + i * 36, { size: 22, color: v.startsWith('-') ? C.red : C.ink });
         });
-        ellipse(ctx, b.X(x + 80), b.Y(199), b.S(58), b.S(22), { w: b.S(2.5), color: C.amber, seed: 502 });
-        line(ctx, b.X(x + 30), b.Y(318), b.X(x + 370), b.Y(318), { w: b.S(2), color: C.soft, seed: 503 });
-        text(ctx, '+ semantic types', b.X(x + 40), b.Y(366), { size: b.S(28), kind: 'handBold', color: C.meaning, maxWidth: b.S(330), maxLines: 1 });
-        ['period: YearMonth', 'game: Category', 'newUsers: Profit'].forEach((m, i) => mono(ctx, b, m, x + 40, 420 + i * 48, { size: 23, color: C.meaning }));
+        ellipse(ctx, b.X(x + 80), b.Y(203), b.S(58), b.S(22), { w: b.S(2.5), color: C.amber, seed: 502 });
+        // The semantic types, highlighted in blue: the part the agent adds.
+        washRect(ctx, b.X(x + 26), b.Y(326), b.S(348), b.S(232), C.meaning, { alpha: 0.2, seed: 505 });
+        rect(ctx, b.X(x + 26), b.Y(326), b.S(348), b.S(232), { w: b.S(2.5), color: C.meaning, seed: 506 });
+        text(ctx, '+ semantic types', b.X(x + 44), b.Y(370), { size: b.S(28), kind: 'handBold', color: C.meaning, maxWidth: b.S(320), maxLines: 1 });
+        [['period', 'YearMonth'], ['game', 'Category'], ['newUsers', 'Profit']].forEach(([f, t], i) => {
+          const y = 424 + i * 46;
+          mono(ctx, b, `${f}:`, x + 44, y, { size: 22, color: C.ink2 });
+          text(ctx, t, b.X(x + 44 + (f.length + 2) * 13.6), b.Y(y), { size: b.S(23), kind: 'mono', color: C.meaning, maxWidth: b.S(200), maxLines: 1 });
+          line(ctx, b.X(x + 44 + (f.length + 2) * 13.6), b.Y(y + 6), b.X(x + 44 + (f.length + 2) * 13.6 + t.length * 13.8), b.Y(y + 6), { w: b.S(2.5), color: C.meaning, seed: 507 + i });
+        });
       } },
-      { title: 'Compiler decides', draw: (b, x) => {
-        chip(ctx, b, x + 24, 180, 'parse', C.blue, '202101 is Jan 2021', 511);
-        chip(ctx, b, x + 24, 258, 'time axis', C.teal, 'a tick each half year', 513);
-        chip(ctx, b, x + 24, 336, 'diverge', C.red, 'colors split at 0', 515);
-        chip(ctx, b, x + 24, 414, 'sum', C.amber, '4 regions, 1 cell', 517);
-        chip(ctx, b, x + 24, 492, 'fit', C.purple, 'cells sized to fit', 519);
+      { title: 'What it means', draw: (b, x) => {
+        chip(ctx, b, x + 24, 200, 'parse', C.blue, '202101 is Jan 2021', 511);
+        chip(ctx, b, x + 24, 300, 'sum', C.amber, '4 regions, 1 cell', 513);
+        chip(ctx, b, x + 24, 400, 'diverge', C.red, 'colors split at 0', 515);
+        chip(ctx, b, x + 24, 500, 'format', C.teal, 'Jan 2021, -1.1k', 517);
       } },
-      { title: 'Chart', draw: (b, x) => {
-        miniHeatmap(ctx, b.X(x + 40), b.Y(160), b.S(320), b.S(250), { rows: 6, cols: 10, seed: 31, palette: DEFAULT_DIVERGING, frame: false });
-        line(ctx, b.X(x + 40), b.Y(430), b.X(x + 360), b.Y(430), { w: b.S(2.5), color: C.ink, seed: 521 });
-        ['2021', '2023', '2025'].forEach((t, i) => text(ctx, t, b.X(x + 60 + i * 140), b.Y(474), { size: b.S(26), color: C.ink2, align: 'center', maxWidth: b.S(90) }));
+      { title: 'Layout', draw: (b, x) => {
+        // The data pushes the plot out; the canvas pushes back: a dashed canvas around a plot that stretched.
+        rect(ctx, b.X(x + 30), b.Y(150), b.S(340), b.S(260), { w: b.S(2), color: C.soft, seed: 521 });
+        miniHeatmap(ctx, b.X(x + 60), b.Y(176), b.S(290), b.S(170), { rows: 6, cols: 12, seed: 31, palette: DEFAULT_DIVERGING, frame: false });
+        arrow(ctx, b.X(x + 205), b.Y(370), b.X(x + 345), b.Y(370), { w: b.S(2.5), color: C.purple, seed: 522, head: b.S(10) });
+        arrow(ctx, b.X(x + 205), b.Y(370), b.X(x + 65), b.Y(370), { w: b.S(2.5), color: C.purple, seed: 523, head: b.S(10) });
+        ['2021', '2023', '2025'].forEach((t, i) => text(ctx, t, b.X(x + 80 + i * 120), b.Y(398), { size: b.S(20), color: C.ink2, align: 'center', maxWidth: b.S(80) }));
+        chip(ctx, b, x + 24, 470, 'fit', C.purple, 'cells sized to the canvas', 524);
+        chip(ctx, b, x + 24, 540, 'ticks', C.teal, 'one label a year', 526);
       } },
-    ], [{ label: 'compiler' }, { label: 'renders' }], [140, 800, 1460]);
+      { title: 'Any backend', draw: (b, x) => {
+        const libs: [string, string][] = [['Vega-Lite', C.blue], ['ECharts', C.red], ['Chart.js', C.amber], ['Plotly', C.teal], ['Excel', C.green]];
+        libs.forEach(([name, color], i) => {
+          const y = 150 + i * 84;
+          washRect(ctx, b.X(x + 30), b.Y(y), b.S(340), b.S(62), color, { alpha: 0.18, seed: 531 + i });
+          rect(ctx, b.X(x + 30), b.Y(y), b.S(340), b.S(62), { w: b.S(2), color, seed: 541 + i });
+          miniHeatmap(ctx, b.X(x + 42), b.Y(y + 10), b.S(96), b.S(42), { rows: 3, cols: 6, seed: 31 + i, palette: DEFAULT_DIVERGING, frame: false });
+          text(ctx, name, b.X(x + 160), b.Y(y + 42), { size: b.S(26), kind: 'handBold', maxWidth: b.S(200), maxLines: 1 });
+        });
+      } },
+    ], [{ label: 'compiler' }, { label: 'compiler' }, { label: 'compiles to' }]);
   },
 
   /** B, how it works: an unthemed chart, the theme spec, what the compiler decides for this chart, the result. */
@@ -576,44 +600,198 @@ Object.assign(SKETCHES, {
 });
 
 Object.assign(SKETCHES, {
-  /** A.1: what each semantic type in the spec sets off, as a small decision tree per field. */
+  /**
+   * A.1: what each semantic type sets off, as a small tree per field. The type boxes and connectors are
+   * drawn; the branch text is set over them as HTML (see TYPE_TREE in slides.tsx), on the same 1000 × 720 frame.
+   */
   typesTree(ctx: Ctx, w: number, h: number) {
     const s = Math.min(w / 1000, h / 720);
     const X = (v: number) => v * s + (w - 1000 * s) / 2, Y = (v: number) => v * s + (h - 720 * s) / 2, S = (v: number) => v * s;
-    type Leaf = { y: number; text: string; mono?: boolean; color?: string };
-    const roots: { cy: number; label: string; leaves: Leaf[] }[] = [
-      { cy: 140, label: 'period: YearMonth', leaves: [
-        { y: 62, text: 'try the month formats, in order' },
-        { y: 112, text: '202101 · 2021-01 · 01/2021 · Jan 2021 · 2021M01', mono: true, color: C.ink2 },
-        { y: 168, text: '202101 → Jan 2021', mono: true, color: C.green },
-        { y: 226, text: 'draw a time axis, labelled by year' },
-      ] },
-      { cy: 380, label: 'game: Category', leaves: [
-        { y: 338, text: 'no order of its own: keep the data’s order' },
-        { y: 410, text: 'one row each, names wrapped to fit' },
-      ] },
-      { cy: 592, label: 'newUsers: Profit', leaves: [
-        { y: 520, text: 'it adds up: sum the four regions' },
-        { y: 590, text: 'it can go negative: colors diverge at 0' },
-        { y: 660, text: 'same reach on both sides of 0' },
-      ] },
-    ];
-    roots.forEach((r, i) => {
+    TYPE_TREE.forEach((r, i) => {
       card(ctx, X(10), Y(r.cy - 40), S(300), S(80), { seed: 1000 + i * 9, color: C.meaning, w: 3 });
       text(ctx, r.label, X(160), Y(r.cy + 9), { size: S(25), kind: 'mono', color: C.meaning, align: 'center', maxWidth: S(280), maxLines: 1 });
       r.leaves.forEach((l, j) => {
-        const indent = l.mono ? 40 : 0;
         if (!l.mono) {
-          stroke(ctx, [[X(312), Y(r.cy)], [X(345), Y((r.cy + l.y - 8) / 2)], [X(372), Y(l.y - 8)]], { w: S(2.2), color: C.ink2, seed: 1003 + i * 9 + j });
-          dot(ctx, X(380), Y(l.y - 8), S(5), C.ink2, { seed: 1030 + i * 9 + j });
+          stroke(ctx, [[X(312), Y(r.cy)], [X(345), Y((r.cy + l.y) / 2)], [X(372), Y(l.y)]], { w: S(2.2), color: C.ink2, seed: 1003 + i * 9 + j });
+          dot(ctx, X(380), Y(l.y), S(5), C.ink2, { seed: 1030 + i * 9 + j });
         } else {
-          line(ctx, X(398), Y(l.y - 40), X(398), Y(l.y - 8), { w: S(2), color: C.soft, seed: 1050 + i * 9 + j });
-          line(ctx, X(398), Y(l.y - 8), X(422), Y(l.y - 8), { w: S(2), color: C.soft, seed: 1060 + i * 9 + j });
+          line(ctx, X(398), Y(l.y - 32), X(398), Y(l.y), { w: S(2), color: C.soft, seed: 1050 + i * 9 + j });
+          line(ctx, X(398), Y(l.y), X(422), Y(l.y), { w: S(2), color: C.soft, seed: 1060 + i * 9 + j });
         }
-        text(ctx, l.text, X(396 + indent), Y(l.y), l.mono
-          ? { size: S(21), kind: 'mono', color: l.color, maxWidth: S(560), maxLines: 1 }
-          : { size: S(29), color: l.color ?? C.ink, maxWidth: S(600), maxLines: 1 });
       });
     });
   },
+});
+
+// What each semantic type sets off; `y` is the middle of a leaf's line on the 1000 × 720 frame.
+export type TypeLeaf = { y: number; text: string; mono?: boolean; tone?: 'muted' | 'good' };
+export const TYPE_TREE: { cy: number; label: string; leaves: TypeLeaf[] }[] = [
+  { cy: 140, label: 'period: YearMonth', leaves: [
+    { y: 54, text: 'Try the month formats, in order' },
+    { y: 104, text: '202101 · 2021-01 · 01/2021 · Jan 2021 · 2021M01', mono: true, tone: 'muted' },
+    { y: 160, text: '202101 → Jan 2021', mono: true, tone: 'good' },
+    { y: 218, text: 'Draw a time axis, labelled by year' },
+  ] },
+  { cy: 380, label: 'game: Category', leaves: [
+    { y: 330, text: "No order of its own: keep the data's order" },
+    { y: 402, text: 'One row each, names wrapped to fit' },
+  ] },
+  { cy: 592, label: 'newUsers: Profit', leaves: [
+    { y: 512, text: 'It adds up: sum the four regions' },
+    { y: 582, text: 'It can go negative: colors diverge at 0' },
+    { y: 652, text: 'Same reach on both sides of 0' },
+  ] },
+];
+
+// ---------------------------------------------------------------- section A: the vocabulary of semantic types
+const TYPE_GROUPS: { group: string; color: string; types: string[]; x: number; y: number; w: number }[] = [
+  // Placed by hand on a 1500 × 560 board: three columns, the bigger groups first.
+  { group: 'Time units', color: C.blue, x: 20, y: 20, w: 470, types: ['Year', 'Quarter', 'Month', 'Week', 'Day', 'Hour', 'YearMonth', 'YearQuarter', 'YearWeek', 'Decade', 'Duration'] },
+  { group: 'Points in time', color: C.blue, x: 20, y: 330, w: 470, types: ['DateTime', 'Date', 'Time', 'Timestamp'] },
+  { group: 'Measures', color: C.amber, x: 515, y: 20, w: 470, types: ['Quantity', 'Count', 'Amount', 'Price', 'Percentage', 'Temperature'] },
+  { group: 'Signed measures', color: C.red, x: 515, y: 255, w: 470, types: ['Profit', 'PercentageChange', 'Sentiment', 'Correlation'] },
+  { group: 'Ordered numbers', color: C.green, x: 515, y: 440, w: 470, types: ['Rank', 'Score', 'ID'] },
+  { group: 'Places', color: C.teal, x: 1010, y: 20, w: 470, types: ['Country', 'State', 'City', 'Region', 'Address', 'ZipCode', 'Latitude', 'Longitude'] },
+  { group: 'Categories', color: C.purple, x: 1010, y: 310, w: 470, types: ['Category', 'Name', 'Status', 'Boolean', 'Direction', 'Range'] },
+];
+
+Object.assign(SKETCHES, {
+  /** The semantic types, each family a hand-drawn group with its types as chips, laid out by hand. */
+  typeCloud(ctx: Ctx, w: number, h: number) {
+    const s = Math.min(w / 1500, h / 560);
+    const X = (v: number) => v * s + (w - 1500 * s) / 2, Y = (v: number) => v * s + (h - 560 * s) / 2, S = (v: number) => v * s;
+    const CHIP_H = 40, GAP = 10, PAD = 22, FS = 20;
+    TYPE_GROUPS.forEach((g, gi) => {
+      // Lay the chips out in rows first, so the group's outline fits them.
+      ctx.save(); ctx.font = `500 ${S(FS)}px ui-monospace, 'SF Mono', Menlo, monospace`;
+      const widths = g.types.map((t) => ctx.measureText(t).width / s + 26);
+      ctx.restore();
+      const rows: { t: string; w: number; x: number }[][] = [[]];
+      let cx = 0;
+      g.types.forEach((t, i) => {
+        if (cx > 0 && cx + widths[i] > g.w - PAD * 2) { rows.push([]); cx = 0; }
+        rows[rows.length - 1].push({ t, w: widths[i], x: cx });
+        cx += widths[i] + GAP;
+      });
+      const gh = 62 + rows.length * (CHIP_H + GAP) + 8;
+      washRect(ctx, X(g.x), Y(g.y), S(g.w), S(gh), g.color, { alpha: 0.13, seed: 2000 + gi });
+      rect(ctx, X(g.x), Y(g.y), S(g.w), S(gh), { w: S(2.5), color: g.color, seed: 2010 + gi });
+      text(ctx, g.group, X(g.x + PAD), Y(g.y + 40), { size: S(27), kind: 'handBold', color: g.color, maxWidth: S(g.w - PAD * 2), maxLines: 1 });
+      rows.forEach((row, ri) => row.forEach((c, ci) => {
+        const x = g.x + PAD + c.x, y = g.y + 58 + ri * (CHIP_H + GAP);
+        card(ctx, X(x), Y(y), S(c.w), S(CHIP_H), { seed: 2100 + gi * 40 + ri * 10 + ci, color: g.color, fill: '#ffffff', w: 1.6 });
+        text(ctx, c.t, X(x + c.w / 2), Y(y + CHIP_H / 2 + 7), { size: S(FS), kind: 'mono', color: C.ink, align: 'center', maxWidth: S(c.w - 8), maxLines: 1 });
+      }));
+    });
+  },
+});
+
+// ---------------------------------------------------------------- act 4: three ways to use Flint
+
+type TrioPanel = (ctx: Ctx, b: Board, x: number, py: number) => void;
+
+/**
+ * Three hand-drawn windows side by side. With `focus`, the other two fade back and that one is circled
+ * in `ring`; the slide prints the labels underneath as text.
+ */
+function trio(panels: TrioPanel[], seed: number, focus?: number, ring: string = C.red): Draw {
+  return (ctx, w, h) => {
+    const s = Math.min(w / 1500, h / 410);
+    const b: Board = { X: (v) => v * s + (w - 1500 * s) / 2, Y: (v) => v * s + (h - 410 * s) / 2, S: (v) => v * s };
+    const { X, Y, S } = b;
+    const PW = 420, PH = 330, xs = [45, 540, 1035], py = 40;
+    xs.forEach((x, i) => {
+      const k = seed + i * 100;
+      card(ctx, X(x), Y(py), S(PW), S(PH), { seed: k, color: C.ink, fill: C.paper, w: 2.5 });
+      line(ctx, X(x), Y(py + 34), X(x + PW), Y(py + 34), { w: S(2), color: C.soft, seed: k + 1 });
+      [0, 1, 2].forEach((j) => dot(ctx, X(x + 20 + j * 18), Y(py + 17), S(5), [C.red, C.amber, C.green][j], { seed: k + 2 + j }));
+      panels[i](ctx, b, x, py);
+    });
+    if (focus !== undefined) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.66)';
+      xs.forEach((x, i) => { if (i !== focus) ctx.fillRect(X(x - 20), Y(0), S(PW + 40), S(410)); });
+      ctx.restore();
+      ellipse(ctx, X(xs[focus] + PW / 2), Y(py + PH / 2), S(PW / 2 + 30), S(PH / 2 + 26), { w: S(5), color: ring, seed: seed + 900 + focus });
+    }
+  };
+}
+
+// The three ways to use Flint: a chat with a chart card in the reply; an app with a table linked to a
+// chart; a theme's swatches and typeface carried onto three charts.
+const USE_PANELS: TrioPanel[] = [
+  (ctx, { X, Y, S }, x, py) => {
+    washRect(ctx, X(x + 150), Y(py + 52), S(250), S(46), C.blue, { alpha: 0.22, seed: 1106 });
+    line(ctx, X(x + 166), Y(py + 70), X(x + 376), Y(py + 70), { w: S(3), color: C.blue, seed: 1107 });
+    line(ctx, X(x + 166), Y(py + 84), X(x + 320), Y(py + 84), { w: S(3), color: C.blue, seed: 1108 });
+    dot(ctx, X(x + 32), Y(py + 128), S(12), C.ink, { seed: 1109 });
+    card(ctx, X(x + 54), Y(py + 116), S(346), S(196), { seed: 1110, color: C.soft, fill: '#ffffff', w: 2 });
+    miniLines(ctx, X(x + 74), Y(py + 140), S(306), S(150), { seed: 1111, series: 3 });
+  },
+  (ctx, { X, Y, S }, x, py) => {
+    text(ctx, '<FlintChart />', X(x + 20), Y(py + 66), { size: S(22), kind: 'mono', color: C.meaning, maxWidth: S(220), maxLines: 1 });
+    rect(ctx, X(x + 20), Y(py + 86), S(150), S(220), { w: S(2), color: C.soft, seed: 1201 });
+    for (let i = 0; i < 6; i++) {
+      line(ctx, X(x + 32), Y(py + 112 + i * 32), X(x + 158), Y(py + 112 + i * 32), { w: S(i === 2 ? 4 : 2), color: i === 2 ? C.amber : C.soft, seed: 1202 + i });
+    }
+    card(ctx, X(x + 196), Y(py + 86), S(204), S(220), { seed: 1210, color: C.soft, fill: '#ffffff', w: 2 });
+    miniBars(ctx, X(x + 212), Y(py + 110), S(172), S(180), { seed: 1211, bars: 5, color: [C.soft, C.soft, C.amber, C.soft, C.soft] });
+    arrow(ctx, X(x + 162), Y(py + 176), X(x + 252), Y(py + 176), { w: S(3), color: C.amber, seed: 1212, head: S(12) });
+  },
+  (ctx, { X, Y, S }, x, py) => {
+    text(ctx, 'Aa', X(x + 28), Y(py + 100), { size: S(48), kind: 'handBold', color: C.ink, maxWidth: S(90), maxLines: 1 });
+    ['#1f3b73', '#1b998b', '#e3a72f', '#8d99ae', '#c8553d'].forEach((c, i) => dot(ctx, X(x + 140 + i * 52), Y(py + 82), S(17), c, { seed: 1301 + i }));
+    const pal = ['#1f3b73', '#1b998b', '#e3a72f'];
+    [0, 1, 2].forEach((i) => {
+      const cx = x + 22 + i * 132;
+      card(ctx, X(cx), Y(py + 136), S(118), S(170), { seed: 1310 + i * 3, color: C.soft, fill: '#ffffff', w: 2 });
+      if (i === 0) miniBars(ctx, X(cx + 12), Y(py + 160), S(94), S(130), { seed: 1320, bars: 4, color: pal[0] });
+      if (i === 1) miniLines(ctx, X(cx + 10), Y(py + 160), S(98), S(130), { seed: 1321, series: 2, colors: pal });
+      if (i === 2) miniHeatmap(ctx, X(cx + 12), Y(py + 164), S(94), S(118), { rows: 4, cols: 4, seed: 1322, palette: pal, frame: false });
+    });
+  },
+];
+
+// The three specs: semantic types that become a chart; a theme that turns a plain chart into a house
+// chart; a click that arrives as an event naming the data.
+const SPEC_PANELS: TrioPanel[] = [
+  (ctx, { X, Y, S }, x, py) => {
+    ['"period": "YearMonth"', '"game": "Category"', '"newUsers": "Profit"'].forEach((t, i) =>
+      text(ctx, t, X(x + 24), Y(py + 72 + i * 32), { size: S(21), kind: 'mono', color: C.meaning, maxWidth: S(370), maxLines: 1 }));
+    miniHeatmap(ctx, X(x + 40), Y(py + 178), S(340), S(110), { rows: 4, cols: 10, seed: 1511, palette: DEFAULT_DIVERGING, frame: false });
+    line(ctx, X(x + 40), Y(py + 298), X(x + 380), Y(py + 298), { w: S(2), color: C.ink, seed: 1512 });
+  },
+  (ctx, { X, Y, S }, x, py) => {
+    text(ctx, '"theme_spec": "economist"', X(x + 24), Y(py + 72), { size: S(21), kind: 'mono', color: C.look, maxWidth: S(370), maxLines: 1 });
+    card(ctx, X(x + 20), Y(py + 104), S(160), S(200), { seed: 1601, color: C.soft, fill: '#ffffff', w: 2 });
+    miniBars(ctx, X(x + 34), Y(py + 140), S(132), S(150), { seed: 1602, bars: 4, color: '#a7adb2' });
+    arrow(ctx, X(x + 188), Y(py + 204), X(x + 232), Y(py + 204), { w: S(3), color: C.look, seed: 1603, head: S(12) });
+    card(ctx, X(x + 240), Y(py + 104), S(160), S(200), { seed: 1604, color: C.soft, fill: '#ffffff', w: 2 });
+    washRect(ctx, X(x + 254), Y(py + 118), S(30), S(9), '#e3120b', { alpha: 0.95, seed: 1605 });
+    miniBars(ctx, X(x + 254), Y(py + 140), S(132), S(150), { seed: 1602, bars: 4, color: '#006ba2' });
+  },
+  (ctx, { X, Y, S }, x, py) => {
+    const pts: [number, number, number][] = [[50, 250, 9], [80, 200, 12], [110, 230, 8], [140, 150, 14], [170, 180, 10], [200, 110, 11], [120, 280, 8], [60, 120, 9]];
+    rect(ctx, X(x + 20), Y(py + 56), S(210), S(250), { w: S(2), color: C.soft, seed: 1701 });
+    pts.forEach(([px, pyy, r], i) => dot(ctx, X(x + px), Y(py + pyy), S(r), i === 3 ? C.behavior : C.soft, { seed: 1702 + i }));
+    ellipse(ctx, X(x + 140), Y(py + 150), S(22), S(22), { w: S(2.5), color: C.amber, seed: 1711 });
+    arrow(ctx, X(x + 236), Y(py + 180), X(x + 262), Y(py + 180), { w: S(3), color: C.behavior, seed: 1712, head: S(10) });
+    card(ctx, X(x + 268), Y(py + 116), S(136), S(130), { seed: 1713, color: C.behavior, fill: '#ffffff', w: 2.5 });
+    text(ctx, 'click', X(x + 280), Y(py + 152), { size: S(19), kind: 'mono', color: C.ink2, maxWidth: S(116), maxLines: 1 });
+    text(ctx, 'Country:', X(x + 280), Y(py + 188), { size: S(19), kind: 'mono', color: C.ink, maxWidth: S(116), maxLines: 1 });
+    text(ctx, '"Japan"', X(x + 280), Y(py + 222), { size: S(19), kind: 'mono', color: C.behavior, maxWidth: S(116), maxLines: 1 });
+  },
+];
+
+const SPEC_RINGS = [C.meaning, C.look, C.behavior];
+
+Object.assign(SKETCHES, {
+  useCases: trio(USE_PANELS, 1100),
+  useCase1: trio(USE_PANELS, 1100, 0),
+  useCase2: trio(USE_PANELS, 1100, 1),
+  useCase3: trio(USE_PANELS, 1100, 2),
+  specs: trio(SPEC_PANELS, 1500),
+  spec1: trio(SPEC_PANELS, 1500, 0, SPEC_RINGS[0]),
+  spec2: trio(SPEC_PANELS, 1500, 1, SPEC_RINGS[1]),
+  spec3: trio(SPEC_PANELS, 1500, 2, SPEC_RINGS[2]),
 });

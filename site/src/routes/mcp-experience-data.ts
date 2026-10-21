@@ -80,7 +80,7 @@ const coffeeByCountry: ChartAssemblyInput = {
   chart_spec: {
     chartType: 'Line Chart',
     encodings: { x: { field: 'Year' }, y: { field: 'Bags' }, color: { field: 'Country' } },
-    title: 'Asia is learning to love coffee',
+    title: "Asia's love for coffee has grown",
     // Wider than tall: the card holds 480px of chart, and the legend takes two rows above the plot.
     baseSize: { width: 520, height: 280 },
     subtitle: 'Coffee consumed in each country, million 60-kg bags, 2005–2025',
