@@ -131,3 +131,17 @@ input[type='range'].site-range:focus-visible {
     flex-shrink: 0;
   }
 }
+/* A copyable prompt: the copy button floats over the block's top-right corner, beside the short first line. */
+.prompt-block-copyable pre {
+  padding: 14px 14px 12px !important;
+  font-size: 12px !important;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 520px) {
+  /* Too narrow for the button beside the first line: it keeps a row of its own. */
+  .prompt-block-copyable pre {
+    padding-top: 42px !important;
+  }
+}

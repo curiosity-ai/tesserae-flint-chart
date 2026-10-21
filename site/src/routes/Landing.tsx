@@ -12,6 +12,9 @@ import { ScaleToFit } from '../components/ScaleToFit';
 import { GalleryOptionsBar, ThemeControl } from '../components/GalleryOptionsBar';
 import { SpecPipelineFigure } from '../components/SpecPipelineFigure';
 import { CodeBlock } from '../components/CodeBlock';
+import { PromptBlock } from '../components/PromptBlock';
+import { MCP_SETUP_PROMPT } from '../shared/mcp-setup';
+import { Zap } from 'lucide-react';
 import stringify from 'json-stringify-pretty-compact';
 import { testCaseToFlintSummary, testCaseToAssemblyInput, withHouse, withHouseId } from '../shared/test-case-utils';
 import { buildPanelModel, withoutEchoedOverrides } from '../shared/chart-options';
@@ -64,7 +67,7 @@ export function Landing() {
 
       <main style={mainStyle}>
         {/* ---- Hero ------------------------------------------------------ */}
-        <section style={{ ...sectionStyle, paddingTop: 88, paddingBottom: 36 }}>
+        <section style={{ ...sectionStyle, paddingTop: 88, paddingBottom: 20 }}>
           <div style={heroLockupStyle}>
             <img src={flintLogo} alt="" aria-hidden="true" style={heroLogoStyle} />
             <div style={heroHeadingBlockStyle}>
@@ -80,13 +83,7 @@ export function Landing() {
                 {t('landing.leadBefore')}{' '}
                 <LeadHighlight>{t('landing.leadHighlight1')}</LeadHighlight>
                 {t('landing.leadStop')}
-                <Trans
-                  i18nKey="landing.leadAvailability"
-                  components={{
-                    mcp: <LocaleLink className="site-text-link" style={contributorLinkStyle} to="/mcp" />,
-                    npm: <a className="site-text-link" style={contributorLinkStyle} href="https://www.npmjs.com/package/flint-chart" target="_blank" rel="noreferrer" />,
-                  }}
-                />
+                {t('landing.leadInsight')}
               </p>
               <p style={{ ...leadStyle, marginTop: 14 }}>
                 {t('landing.leadHighlight2', {
@@ -101,6 +98,13 @@ export function Landing() {
                   components={{
                     themeLab: <LocaleLink className="site-text-link" style={contributorLinkStyle} to="/theme-lab" />,
                     advanced: <LocaleLink className="site-text-link" style={contributorLinkStyle} to="/interactions/advanced" />,
+                  }}
+                />
+                <Trans
+                  i18nKey="landing.leadAvailability"
+                  components={{
+                    mcp: <LocaleLink className="site-text-link" style={contributorLinkStyle} to="/mcp" />,
+                    npm: <a className="site-text-link" style={contributorLinkStyle} href="https://www.npmjs.com/package/flint-chart" target="_blank" rel="noreferrer" />,
                   }}
                 />
               </p>
@@ -217,6 +221,26 @@ export function Landing() {
 
         {/* ---- Interactive example: spec -> chart --------------------- */}
         <HeroShowcase />
+
+        {/* ---- Try it now: a prompt the reader pastes into their agent -- */}
+        <section className="landing-try-it" style={tryItSectionStyle} aria-labelledby="landing-try-it-title">
+          <div style={tryItTextColStyle}>
+            <h2 id="landing-try-it-title" style={tryItHeadingStyle}>
+              <Zap aria-hidden="true" size={20} strokeWidth={2} fill="currentColor" style={tryItIconStyle} />
+              {t('landing.tryIt.title')}
+            </h2>
+            <p style={tryItBodyStyle}>{t('landing.tryIt.body')}</p>
+            <p style={tryItNoteStyle}>
+              <Trans
+                i18nKey="landing.tryIt.manual"
+                components={{ mcp: <LocaleLink className="site-text-link" style={contributorLinkStyle} to="/mcp" /> }}
+              />
+            </p>
+          </div>
+          <div style={tryItPromptColStyle}>
+            <PromptBlock copyable>{MCP_SETUP_PROMPT}</PromptBlock>
+          </div>
+        </section>
 
         {/* ---- News ---------------------------------------------------- */}
         <section className="landing-news" style={newsSectionStyle}>
@@ -1787,6 +1811,55 @@ const howItWorksSectionStyle: CSSProperties = {
   paddingBottom: 48,
 };
 
+const tryItSectionStyle: CSSProperties = {
+  ...sectionStyle,
+  display: 'grid',
+  gridTemplateColumns: 'minmax(0, 300px) minmax(0, 1fr)',
+  gap: 32,
+  alignItems: 'start',
+  paddingTop: 20,
+  paddingBottom: 28,
+};
+
+const tryItTextColStyle: CSSProperties = {
+  display: 'grid',
+  gap: 8,
+};
+
+const tryItHeadingStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+  margin: 0,
+  fontSize: 22,
+  lineHeight: 1.3,
+  fontWeight: 650,
+};
+
+const tryItIconStyle: CSSProperties = {
+  flex: '0 0 auto',
+  color: '#b26a00',
+};
+
+const tryItBodyStyle: CSSProperties = {
+  margin: 0,
+  color: siteTheme.text,
+  fontSize: 14.5,
+  lineHeight: 1.6,
+};
+
+const tryItNoteStyle: CSSProperties = {
+  margin: 0,
+  color: siteTheme.textMuted,
+  fontSize: 13,
+  lineHeight: 1.55,
+};
+
+const tryItPromptColStyle: CSSProperties = {
+  minWidth: 0,
+  background: PAPER,
+};
+
 const newsSectionStyle: CSSProperties = {
   ...sectionStyle,
   display: 'grid',
@@ -2246,6 +2319,11 @@ const landingInteractiveStyles = `
   }
 
   @media (max-width: 640px) {
+    .landing-try-it {
+      grid-template-columns: minmax(0, 1fr) !important;
+      gap: 14px !important;
+    }
+
     .landing-backend-roster-label {
       flex-basis: 100%;
       margin-right: 0 !important;
