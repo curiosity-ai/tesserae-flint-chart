@@ -19,7 +19,7 @@ const outputs = new Map([
   [manifestPath, `${JSON.stringify(manifest, null, 2)}\n`],
   [mcpPath, `${JSON.stringify(mcp, null, 2)}\n`],
   [resolve(pluginRoot, 'assets/flint-app.html'), await readFile(resolve(root, 'packages/flint-mcp/assets/flint-app.html'), 'utf8')],
-  [resolve(pluginRoot, 'skills/flint-chart-author/SKILL.md'), `${skill.trimEnd()}\n\n## Copilot CLI chart canvas\n\nWhen this plugin's native **Flint Chart Canvas** is available, prefer it over \`create_chart\` and \`show\`. Validate the complete \`ChartAssemblyInput\` first, then open the canvas with that input, including any theme, options, and \`interaction_spec\`. Pass resolved inline \`data.values\`, not a local \`data.url\`: the canvas cannot read local data files. The canvas owns interactive chart customization; do not recreate that UI or replace it with a browser page.\n`],
+  [resolve(pluginRoot, 'skills/flint-chart-author/SKILL.md'), `${skill.trimEnd()}\n\n## Copilot CLI chart canvas\n\nWhen this plugin's native **Flint Chart Canvas** is available, prefer it over \`validate_chart\` and \`show\`. Validate the complete \`ChartAssemblyInput\` first, then open the canvas with that input, including any theme, options, and \`interaction_spec\`. Pass resolved inline \`data.values\`, not a local \`data.url\`: the canvas cannot read local data files. The canvas owns interactive chart customization; do not recreate that UI or replace it with a browser page.\n`],
 ]);
 
 for (const [target, content] of outputs) {

@@ -2,6 +2,7 @@ import type { ChartAssemblyInput, ChartUpdate } from 'flint-chart';
 import type { Board, BoardChart } from '../../../packages/flint-mcp/ui/src/BoardView';
 import { monthRows, yearRows } from './mcp-experience-range';
 import { gapminderRows } from '../playground/gapminder-dashboard-data';
+import coffee from '../data/usda-coffee-consumption.json';
 
 /* ------------------------------------------------------------------ */
 /* Part 1: one chart, NASA GISTEMP global temperature                 */
@@ -60,11 +61,56 @@ const editUpdates: ChartUpdate[] = [
 ] as ChartUpdate[];
 
 function chartCard(input: ChartAssemblyInput, updates?: ChartUpdate[]): Board {
-  return { id: 'temperature', kind: 'chart', version: 1, charts: [{ id: 'chart', input, ...(updates ? { updates } : {}) }] };
+  return { id: 'temperature', kind: 'chart', charts: [{ id: 'chart', input, ...(updates ? { updates } : {}) }] };
 }
 
-/** The MCP page's one chart: themed and brushable from the first ask. */
-export const SIMPLE_CHART = chartCard(themed);
+/* ------------------------------------------------------------------ */
+/* The intro: coffee drinking by country, USDA PSD                     */
+/* ------------------------------------------------------------------ */
+
+const coffeeRows = coffee.values;
+const bagsIn = (country: string, year: number) => coffeeRows.find((row) => row.Country === country && row.Year === year)!.Bags;
+const chinaGrowth = bagsIn('China', 2025) / bagsIn('China', 2010);
+
+const coffeeByCountry: ChartAssemblyInput = {
+  data: { values: coffeeRows },
+  semantic_types: { Year: 'Year', Bags: 'Quantity', Country: 'Country' },
+  field_display_names: { Bags: 'Million 60-kg bags' },
+  theme_spec: 'nyt',
+  chart_spec: {
+    chartType: 'Line Chart',
+    encodings: { x: { field: 'Year' }, y: { field: 'Bags' }, color: { field: 'Country' } },
+    title: 'Asia is learning to love coffee',
+    // Wider than tall: the card holds 480px of chart, and the legend takes two rows above the plot.
+    baseSize: { width: 520, height: 280 },
+    subtitle: 'Coffee consumed in each country, million 60-kg bags, 2005–2025',
+    source: 'USDA Foreign Agricultural Service, PSD database',
+  },
+  interaction_spec: {
+    interactions: [
+      { type: 'inspect-index', options: { axis: 'x', show: 'all', seriesBy: 'Country', displayValue: true } },
+      { type: 'legend-toggle' },
+    ],
+  } as ChartAssemblyInput['interaction_spec'],
+} as ChartAssemblyInput;
+
+const coffeeNotes: ChartUpdate[] = [
+  {
+    id: 'agent',
+    ops: [
+      {
+        op: 'set-annotation',
+        target: { select: { key: { Year: 2025, Country: 'China' } } },
+        value: { text: `China: ${chinaGrowth >= 5.5 ? 'nearly 6×' : `${chinaGrowth.toFixed(1)}×`} since 2010` },
+      },
+    ],
+  },
+] as ChartUpdate[];
+
+/** The MCP page's one chart: themed and interactive from the first ask. */
+export const SIMPLE_CHART: Board = {
+  id: 'coffee', kind: 'chart', charts: [{ id: 'chart', input: coffeeByCountry, updates: coffeeNotes }],
+};
 
 export type ChartSlideKey = 'create' | 'theme' | 'interact' | 'select' | 'edit';
 

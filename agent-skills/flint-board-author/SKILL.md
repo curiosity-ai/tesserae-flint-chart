@@ -1,17 +1,16 @@
 ---
 name: flint-board-author
-description: "Use when: several Flint charts should be read together in one view: a dashboard, KPI tiles over a trend, a side-by-side comparison, an overview with its detail; or a board on screen should change (add, retitle, resize, reconnect a chart). Produce one create_board call whose headline, chart choice, layout and connected fields are decided, refine it from the report, then put it on screen once with show."
+description: "Use when: several Flint charts should be read together in one view: a dashboard, KPI tiles over a trend, a side-by-side comparison, an overview with its detail; or a board on screen should change (add, retitle, resize, reconnect a chart). Produce one board spec whose headline, chart choice, layout and connected fields are decided, check and refine it with validate_board, then put it on screen once with show."
 ---
 
 # flint-board: several charts, one view
 
-A board holds several Flint charts under one headline. The agent builds it
-with `create_board` and changes it with `add_chart`, `update_chart`,
-`remove_chart` and `update_board`; none of these draws anything. `show`
-puts the board's current version on screen in a new card, below the
-conversation's latest message, and earlier cards keep the version they showed.
-So call `show` once a turn, after the board is right. A new
-`create_board` starts a second board, so it is only for a second board.
+A board holds several Flint charts under one headline. The agent writes it as
+one board spec, checks it with `validate_board`, which draws nothing, and puts
+it on screen with `show({ "board": … })`, which opens a new card below the
+conversation's latest message. The server keeps nothing between calls: the spec
+in the conversation is the board. So call `show` once a turn, after the board
+is right; to change it later, change the spec and call `show` again.
 
 Each chart on a board is a full chart spec (`flint-chart-author`), plus an
 `id` and a `layout`. This skill covers what a board adds: the headline, which
@@ -108,7 +107,7 @@ On a narrow card each chart takes its own row; the layout needs no second versio
 
 **`view: "table"`** on a chart opens its cell on the table of the rows the chart
 draws; the reader can switch it back. Use it when the numbers matter more than
-the shape. Changing `view` with `update_chart` keeps the reader's arrangement.
+the shape.
 A `Table` is a table either way.
 
 ## Step 5 — connect them
@@ -174,8 +173,8 @@ Pick it with `list_themes` as for one chart.
 
 ## Step 7 — read the report and refine
 
-`create_board` and every later call return the board as the model must judge
-it:
+`validate_board` returns the board as the model must judge it, and `show`
+returns the same report:
 
 - `Layout:` the rows as the card draws them. Check that the lead chart sits
   where the headline points and no row holds an orphan.
@@ -184,26 +183,30 @@ it:
 - `Review:` what the board should still fix: a missing headline, deck or chart
   title, too many tiles or charts, themes set per chart.
 
-Each call takes the board's `id` from the report. Fix each `✗` and each review
-note with the narrowest call: `update_chart` with `chart_id` for one chart
-(pass only the fields that change), `update_board` for the headline,
-theme, columns, order or `link_spec`, `remove_chart` for a chart the board does not
-need. Then call `show` once. In a later turn, change the board the same
-way and show it again: the reader gets a new card at the bottom of the
-conversation, and the earlier one stays as it was.
+Fix each `✗` and each review note in the spec, check it again if the fix was
+large, then call `show` once with the same spec. A chart with errors is left
+off the report's board, and `show` draws nothing until every chart is valid.
 
-What the reader then does on the newest card (selections, link emphasis)
-reaches the model with their next message, one section per chart.
+What the reader then does on the card reaches the model with their next
+message: selections and link emphasis, one section per chart. The reader's
+changes live on that card only, and the context says how to keep each one in
+the next `show`:
 
-The reader can also arrange the board: **Edit layout** lets them move a chart,
-swap two, and resize one on a 12-column grid. Their arrangement then replaces the
-rows: `Layout:` reads "Arranged by the reader" and lists each chart's columns and
-rows. Keep it. `add_chart` places a new chart below it and `update_chart` keeps
-it; `layout` on a chart, or `columns` or `order` on the board, drops it and lays
-the board out in rows again, so pass those only when the user asks for a new
-layout.
+- **A theme** picked in the bar applies to every chart. To keep it, pass that
+  `theme_spec` on the board and leave it out of the charts.
+- **An arrangement** made with **Edit layout** (moving, swapping, resizing
+  charts on a 12-column grid). To keep it, pass the `grid` the context gives.
+  `Layout:` then reads "Arranged on a 12-column grid". A chart added to the
+  spec takes a place below the rest and a chart left out drops its place;
+  leave `grid` out to lay the board out in rows again, only when the user asks
+  for a new layout.
+
+Leave out what the user asked to change, and keep the rest: a `show` without
+them gives the reader back the agent's theme and rows.
 
 ## Worked example
+
+The board spec, passed as it is to `validate_board`, then as `board` to `show`:
 
 ```json
 {
@@ -249,4 +252,5 @@ on a region's line lights that region on the bars and the scatter.
 - [ ] `layout` set where the default is wrong: the lead chart wide, a comparison at equal spans and heights.
 - [ ] `link_spec.fields` names the shared dimensions; each chart that should take part encodes them and, to send, has the interaction whose subject the reader asks about.
 - [ ] `theme_spec` on the board only.
-- [ ] The report has no `✗` and no review note left but the shared colour field.
+- [ ] `validate_board` reports no `✗` and no review note left but the shared colour field.
+- [ ] In a later turn: the reader's theme and `grid` from the context are kept unless the user asked to change them.

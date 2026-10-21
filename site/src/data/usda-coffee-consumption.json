@@ -1,0 +1,745 @@
+{
+ "source": "USDA Foreign Agricultural Service, Production, Supply and Distribution (PSD) database, coffee, domestic consumption",
+ "sourceUrl": "https://apps.fas.usda.gov/psdonline/app/index.html#/app/downloads",
+ "units": {
+  "Bags": "million 60-kg bags of green coffee"
+ },
+ "note": "Market years 2005/06 to 2025/26, labelled by starting year. The European Union, reported as one bloc, is left out.",
+ "values": [
+  {
+   "Year": 2005,
+   "Country": "United States",
+   "Bags": 22.07
+  },
+  {
+   "Year": 2006,
+   "Country": "United States",
+   "Bags": 21.77
+  },
+  {
+   "Year": 2007,
+   "Country": "United States",
+   "Bags": 21.82
+  },
+  {
+   "Year": 2008,
+   "Country": "United States",
+   "Bags": 21.83
+  },
+  {
+   "Year": 2009,
+   "Country": "United States",
+   "Bags": 21.39
+  },
+  {
+   "Year": 2010,
+   "Country": "United States",
+   "Bags": 22.38
+  },
+  {
+   "Year": 2011,
+   "Country": "United States",
+   "Bags": 22.95
+  },
+  {
+   "Year": 2012,
+   "Country": "United States",
+   "Bags": 23.03
+  },
+  {
+   "Year": 2013,
+   "Country": "United States",
+   "Bags": 23.81
+  },
+  {
+   "Year": 2014,
+   "Country": "United States",
+   "Bags": 23.57
+  },
+  {
+   "Year": 2015,
+   "Country": "United States",
+   "Bags": 25.08
+  },
+  {
+   "Year": 2016,
+   "Country": "United States",
+   "Bags": 25.51
+  },
+  {
+   "Year": 2017,
+   "Country": "United States",
+   "Bags": 25.56
+  },
+  {
+   "Year": 2018,
+   "Country": "United States",
+   "Bags": 27.16
+  },
+  {
+   "Year": 2019,
+   "Country": "United States",
+   "Bags": 26.05
+  },
+  {
+   "Year": 2020,
+   "Country": "United States",
+   "Bags": 25.92
+  },
+  {
+   "Year": 2021,
+   "Country": "United States",
+   "Bags": 26.71
+  },
+  {
+   "Year": 2022,
+   "Country": "United States",
+   "Bags": 24.62
+  },
+  {
+   "Year": 2023,
+   "Country": "United States",
+   "Bags": 23.55
+  },
+  {
+   "Year": 2024,
+   "Country": "United States",
+   "Bags": 26.14
+  },
+  {
+   "Year": 2025,
+   "Country": "United States",
+   "Bags": 25.55
+  },
+  {
+   "Year": 2005,
+   "Country": "Brazil",
+   "Bags": 15.91
+  },
+  {
+   "Year": 2006,
+   "Country": "Brazil",
+   "Bags": 16.72
+  },
+  {
+   "Year": 2007,
+   "Country": "Brazil",
+   "Bags": 17.39
+  },
+  {
+   "Year": 2008,
+   "Country": "Brazil",
+   "Bags": 18.03
+  },
+  {
+   "Year": 2009,
+   "Country": "Brazil",
+   "Bags": 18.76
+  },
+  {
+   "Year": 2010,
+   "Country": "Brazil",
+   "Bags": 19.42
+  },
+  {
+   "Year": 2011,
+   "Country": "Brazil",
+   "Bags": 20.02
+  },
+  {
+   "Year": 2012,
+   "Country": "Brazil",
+   "Bags": 20.11
+  },
+  {
+   "Year": 2013,
+   "Country": "Brazil",
+   "Bags": 20.21
+  },
+  {
+   "Year": 2014,
+   "Country": "Brazil",
+   "Bags": 20.42
+  },
+  {
+   "Year": 2015,
+   "Country": "Brazil",
+   "Bags": 20.86
+  },
+  {
+   "Year": 2016,
+   "Country": "Brazil",
+   "Bags": 21.62
+  },
+  {
+   "Year": 2017,
+   "Country": "Brazil",
+   "Bags": 22.42
+  },
+  {
+   "Year": 2018,
+   "Country": "Brazil",
+   "Bags": 23.2
+  },
+  {
+   "Year": 2019,
+   "Country": "Brazil",
+   "Bags": 22.99
+  },
+  {
+   "Year": 2020,
+   "Country": "Brazil",
+   "Bags": 22.28
+  },
+  {
+   "Year": 2021,
+   "Country": "Brazil",
+   "Bags": 22.34
+  },
+  {
+   "Year": 2022,
+   "Country": "Brazil",
+   "Bags": 22.45
+  },
+  {
+   "Year": 2023,
+   "Country": "Brazil",
+   "Bags": 22.16
+  },
+  {
+   "Year": 2024,
+   "Country": "Brazil",
+   "Bags": 21.97
+  },
+  {
+   "Year": 2025,
+   "Country": "Brazil",
+   "Bags": 22.28
+  },
+  {
+   "Year": 2005,
+   "Country": "Japan",
+   "Bags": 7.28
+  },
+  {
+   "Year": 2006,
+   "Country": "Japan",
+   "Bags": 7.37
+  },
+  {
+   "Year": 2007,
+   "Country": "Japan",
+   "Bags": 7.0
+  },
+  {
+   "Year": 2008,
+   "Country": "Japan",
+   "Bags": 7.03
+  },
+  {
+   "Year": 2009,
+   "Country": "Japan",
+   "Bags": 6.89
+  },
+  {
+   "Year": 2010,
+   "Country": "Japan",
+   "Bags": 7.01
+  },
+  {
+   "Year": 2011,
+   "Country": "Japan",
+   "Bags": 7.05
+  },
+  {
+   "Year": 2012,
+   "Country": "Japan",
+   "Bags": 7.57
+  },
+  {
+   "Year": 2013,
+   "Country": "Japan",
+   "Bags": 7.75
+  },
+  {
+   "Year": 2014,
+   "Country": "Japan",
+   "Bags": 7.86
+  },
+  {
+   "Year": 2015,
+   "Country": "Japan",
+   "Bags": 8.06
+  },
+  {
+   "Year": 2016,
+   "Country": "Japan",
+   "Bags": 8.21
+  },
+  {
+   "Year": 2017,
+   "Country": "Japan",
+   "Bags": 8.23
+  },
+  {
+   "Year": 2018,
+   "Country": "Japan",
+   "Bags": 7.9
+  },
+  {
+   "Year": 2019,
+   "Country": "Japan",
+   "Bags": 7.61
+  },
+  {
+   "Year": 2020,
+   "Country": "Japan",
+   "Bags": 7.35
+  },
+  {
+   "Year": 2021,
+   "Country": "Japan",
+   "Bags": 7.21
+  },
+  {
+   "Year": 2022,
+   "Country": "Japan",
+   "Bags": 6.89
+  },
+  {
+   "Year": 2023,
+   "Country": "Japan",
+   "Bags": 7.0
+  },
+  {
+   "Year": 2024,
+   "Country": "Japan",
+   "Bags": 6.53
+  },
+  {
+   "Year": 2025,
+   "Country": "Japan",
+   "Bags": 6.65
+  },
+  {
+   "Year": 2005,
+   "Country": "Philippines",
+   "Bags": 1.21
+  },
+  {
+   "Year": 2006,
+   "Country": "Philippines",
+   "Bags": 1.41
+  },
+  {
+   "Year": 2007,
+   "Country": "Philippines",
+   "Bags": 1.31
+  },
+  {
+   "Year": 2008,
+   "Country": "Philippines",
+   "Bags": 1.74
+  },
+  {
+   "Year": 2009,
+   "Country": "Philippines",
+   "Bags": 2.25
+  },
+  {
+   "Year": 2010,
+   "Country": "Philippines",
+   "Bags": 2.83
+  },
+  {
+   "Year": 2011,
+   "Country": "Philippines",
+   "Bags": 3.66
+  },
+  {
+   "Year": 2012,
+   "Country": "Philippines",
+   "Bags": 4.41
+  },
+  {
+   "Year": 2013,
+   "Country": "Philippines",
+   "Bags": 3.59
+  },
+  {
+   "Year": 2014,
+   "Country": "Philippines",
+   "Bags": 4.23
+  },
+  {
+   "Year": 2015,
+   "Country": "Philippines",
+   "Bags": 6.21
+  },
+  {
+   "Year": 2016,
+   "Country": "Philippines",
+   "Bags": 7.0
+  },
+  {
+   "Year": 2017,
+   "Country": "Philippines",
+   "Bags": 6.55
+  },
+  {
+   "Year": 2018,
+   "Country": "Philippines",
+   "Bags": 6.12
+  },
+  {
+   "Year": 2019,
+   "Country": "Philippines",
+   "Bags": 6.12
+  },
+  {
+   "Year": 2020,
+   "Country": "Philippines",
+   "Bags": 6.58
+  },
+  {
+   "Year": 2021,
+   "Country": "Philippines",
+   "Bags": 7.19
+  },
+  {
+   "Year": 2022,
+   "Country": "Philippines",
+   "Bags": 6.46
+  },
+  {
+   "Year": 2023,
+   "Country": "Philippines",
+   "Bags": 6.59
+  },
+  {
+   "Year": 2024,
+   "Country": "Philippines",
+   "Bags": 6.19
+  },
+  {
+   "Year": 2025,
+   "Country": "Philippines",
+   "Bags": 6.53
+  },
+  {
+   "Year": 2005,
+   "Country": "China",
+   "Bags": 0.2
+  },
+  {
+   "Year": 2006,
+   "Country": "China",
+   "Bags": 0.26
+  },
+  {
+   "Year": 2007,
+   "Country": "China",
+   "Bags": 0.16
+  },
+  {
+   "Year": 2008,
+   "Country": "China",
+   "Bags": 0.34
+  },
+  {
+   "Year": 2009,
+   "Country": "China",
+   "Bags": 1.14
+  },
+  {
+   "Year": 2010,
+   "Country": "China",
+   "Bags": 1.11
+  },
+  {
+   "Year": 2011,
+   "Country": "China",
+   "Bags": 1.11
+  },
+  {
+   "Year": 2012,
+   "Country": "China",
+   "Bags": 1.69
+  },
+  {
+   "Year": 2013,
+   "Country": "China",
+   "Bags": 2.3
+  },
+  {
+   "Year": 2014,
+   "Country": "China",
+   "Bags": 2.38
+  },
+  {
+   "Year": 2015,
+   "Country": "China",
+   "Bags": 2.49
+  },
+  {
+   "Year": 2016,
+   "Country": "China",
+   "Bags": 2.35
+  },
+  {
+   "Year": 2017,
+   "Country": "China",
+   "Bags": 2.71
+  },
+  {
+   "Year": 2018,
+   "Country": "China",
+   "Bags": 2.92
+  },
+  {
+   "Year": 2019,
+   "Country": "China",
+   "Bags": 3.71
+  },
+  {
+   "Year": 2020,
+   "Country": "China",
+   "Bags": 4.48
+  },
+  {
+   "Year": 2021,
+   "Country": "China",
+   "Bags": 4.92
+  },
+  {
+   "Year": 2022,
+   "Country": "China",
+   "Bags": 5.28
+  },
+  {
+   "Year": 2023,
+   "Country": "China",
+   "Bags": 5.76
+  },
+  {
+   "Year": 2024,
+   "Country": "China",
+   "Bags": 5.89
+  },
+  {
+   "Year": 2025,
+   "Country": "China",
+   "Bags": 6.42
+  },
+  {
+   "Year": 2005,
+   "Country": "Vietnam",
+   "Bags": 0.67
+  },
+  {
+   "Year": 2006,
+   "Country": "Vietnam",
+   "Bags": 0.75
+  },
+  {
+   "Year": 2007,
+   "Country": "Vietnam",
+   "Bags": 0.85
+  },
+  {
+   "Year": 2008,
+   "Country": "Vietnam",
+   "Bags": 0.95
+  },
+  {
+   "Year": 2009,
+   "Country": "Vietnam",
+   "Bags": 1.2
+  },
+  {
+   "Year": 2010,
+   "Country": "Vietnam",
+   "Bags": 1.34
+  },
+  {
+   "Year": 2011,
+   "Country": "Vietnam",
+   "Bags": 1.67
+  },
+  {
+   "Year": 2012,
+   "Country": "Vietnam",
+   "Bags": 1.82
+  },
+  {
+   "Year": 2013,
+   "Country": "Vietnam",
+   "Bags": 2.01
+  },
+  {
+   "Year": 2014,
+   "Country": "Vietnam",
+   "Bags": 2.22
+  },
+  {
+   "Year": 2015,
+   "Country": "Vietnam",
+   "Bags": 2.63
+  },
+  {
+   "Year": 2016,
+   "Country": "Vietnam",
+   "Bags": 2.77
+  },
+  {
+   "Year": 2017,
+   "Country": "Vietnam",
+   "Bags": 2.88
+  },
+  {
+   "Year": 2018,
+   "Country": "Vietnam",
+   "Bags": 2.94
+  },
+  {
+   "Year": 2019,
+   "Country": "Vietnam",
+   "Bags": 3.1
+  },
+  {
+   "Year": 2020,
+   "Country": "Vietnam",
+   "Bags": 2.72
+  },
+  {
+   "Year": 2021,
+   "Country": "Vietnam",
+   "Bags": 3.2
+  },
+  {
+   "Year": 2022,
+   "Country": "Vietnam",
+   "Bags": 3.2
+  },
+  {
+   "Year": 2023,
+   "Country": "Vietnam",
+   "Bags": 3.9
+  },
+  {
+   "Year": 2024,
+   "Country": "Vietnam",
+   "Bags": 4.8
+  },
+  {
+   "Year": 2025,
+   "Country": "Vietnam",
+   "Bags": 4.9
+  },
+  {
+   "Year": 2005,
+   "Country": "Indonesia",
+   "Bags": 1.7
+  },
+  {
+   "Year": 2006,
+   "Country": "Indonesia",
+   "Bags": 1.79
+  },
+  {
+   "Year": 2007,
+   "Country": "Indonesia",
+   "Bags": 1.72
+  },
+  {
+   "Year": 2008,
+   "Country": "Indonesia",
+   "Bags": 1.89
+  },
+  {
+   "Year": 2009,
+   "Country": "Indonesia",
+   "Bags": 1.93
+  },
+  {
+   "Year": 2010,
+   "Country": "Indonesia",
+   "Bags": 1.65
+  },
+  {
+   "Year": 2011,
+   "Country": "Indonesia",
+   "Bags": 2.12
+  },
+  {
+   "Year": 2012,
+   "Country": "Indonesia",
+   "Bags": 2.81
+  },
+  {
+   "Year": 2013,
+   "Country": "Indonesia",
+   "Bags": 2.54
+  },
+  {
+   "Year": 2014,
+   "Country": "Indonesia",
+   "Bags": 2.9
+  },
+  {
+   "Year": 2015,
+   "Country": "Indonesia",
+   "Bags": 3.17
+  },
+  {
+   "Year": 2016,
+   "Country": "Indonesia",
+   "Bags": 3.2
+  },
+  {
+   "Year": 2017,
+   "Country": "Indonesia",
+   "Bags": 3.56
+  },
+  {
+   "Year": 2018,
+   "Country": "Indonesia",
+   "Bags": 4.3
+  },
+  {
+   "Year": 2019,
+   "Country": "Indonesia",
+   "Bags": 4.9
+  },
+  {
+   "Year": 2020,
+   "Country": "Indonesia",
+   "Bags": 4.45
+  },
+  {
+   "Year": 2021,
+   "Country": "Indonesia",
+   "Bags": 4.75
+  },
+  {
+   "Year": 2022,
+   "Country": "Indonesia",
+   "Bags": 4.77
+  },
+  {
+   "Year": 2023,
+   "Country": "Indonesia",
+   "Bags": 4.78
+  },
+  {
+   "Year": 2024,
+   "Country": "Indonesia",
+   "Bags": 4.87
+  },
+  {
+   "Year": 2025,
+   "Country": "Indonesia",
+   "Bags": 4.81
+  }
+ ]
+}

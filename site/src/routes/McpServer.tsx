@@ -10,9 +10,9 @@ import { McpExperience } from './McpExperience';
 const HOSTED_MCP_URL = 'https://flint.data-formulator.ai/mcp';
 
 const SURFACE_GROUPS = [
-  { key: 'chart', tools: ['create_chart', 'show'] },
-  { key: 'board', tools: ['create_board', 'add_chart', 'update_chart', 'remove_chart', 'update_board'] },
-  { key: 'static', tools: ['render_chart', 'compile_chart', 'validate_chart'] },
+  { key: 'chart', tools: ['validate_chart', 'show'] },
+  { key: 'board', tools: ['validate_board', 'show'] },
+  { key: 'static', tools: ['render_chart', 'compile_chart'] },
   { key: 'skills', tools: ['list_chart_types', 'list_interaction_presets', 'list_themes', 'get_flint_skill'] },
 ] as const;
 

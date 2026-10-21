@@ -43,8 +43,7 @@ Options:
   -h, --help              Print this help and exit.
 
 Tools:
-  create_chart, create_board, add_chart, update_chart, remove_chart,
-  update_board, show, render_chart, compile_chart, validate_chart,
+  validate_chart, validate_board, show, render_chart, compile_chart,
   list_chart_types, list_interaction_presets, list_themes, get_flint_skill
 
 Resources:

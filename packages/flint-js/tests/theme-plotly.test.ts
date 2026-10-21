@@ -207,6 +207,41 @@ describe('semantic geometry survives house styling', () => {
         expect(String(fig.data[0].mode)).toContain('markers');
     });
 
+    it("keeps a line chart's own curve, an explicit linear included, under a house curve (#149)", () => {
+        const lineInput = (interpolate: string | undefined, theme: string | undefined) => ({
+            data: { values: [{ date: '2025-01-01', value: 4 }, { date: '2025-06-01', value: 6 }, { date: '2026-01-01', value: 5 }] },
+            semantic_types: { date: 'DateTime', value: 'Quantity' },
+            chart_spec: {
+                chartType: 'Line Chart',
+                encodings: { x: 'date', y: 'value' },
+                ...(interpolate ? { chartProperties: { interpolate } } : {}),
+            },
+            ...(theme ? { theme_spec: theme } : {}),
+        });
+        const shapeOf = (interpolate: string | undefined, theme: string | undefined) =>
+            (assemblePlotly(lineInput(interpolate, theme) as any) as any).data[0].line.shape;
+        // The table from the issue: the chart's choice wins under every house.
+        for (const theme of [undefined, 'cartoon', 'de-stijl']) {
+            expect(shapeOf('linear', theme)).toBe('linear');
+            expect(shapeOf('monotone', theme)).toBe('spline');
+            expect(shapeOf('step-after', theme)).toBe('hv');
+        }
+        // With no curve asked for, the house still supplies its own.
+        expect(shapeOf(undefined, 'cartoon')).toBe('spline');
+        expect(shapeOf(undefined, 'de-stijl')).toMatch(/^(hv|vh|hvh)$/);
+        expect(shapeOf(undefined, undefined) ?? 'linear').toBe('linear');
+    });
+
+    it("keeps an area chart's explicit linear under a house curve", () => {
+        const fig = assemblePlotly({
+            data: { values: [{ x: 1, y: 2 }, { x: 2, y: 5 }, { x: 3, y: 3 }] },
+            semantic_types: { x: 'Quantity', y: 'Quantity' },
+            chart_spec: { chartType: 'Area Chart', encodings: { x: 'x', y: 'y' }, chartProperties: { interpolate: 'linear' } },
+            theme_spec: 'cartoon',
+        } as any) as any;
+        expect(fig.data[0].line.shape).toBe('linear');
+    });
+
     it('keeps an ECDF stepped when the house prefers curved lines', () => {
         const fig = assemblePlotly({
             data: { values: [{ score: 1 }, { score: 2 }, { score: 3 }] },

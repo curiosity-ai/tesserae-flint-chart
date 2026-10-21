@@ -11,6 +11,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking (MCP):** the server keeps nothing between calls, so it runs
+  stateless. `show` takes the spec itself, as `chart` or `board`, and draws it;
+  `validate_chart` and the new `validate_board` check a spec and return the
+  same report without drawing. `create_chart`, `create_board`, `add_chart`,
+  `update_chart`, `remove_chart`, `update_board` and the card-only
+  `restore_board`, `set_board_theme` and `set_board_layout` are removed. To
+  change what is on screen, the agent changes the spec and calls `show` again.
+  The reader's theme, arrangement and panel edits stay on the card, and its
+  context gives the fields (`theme_spec`, `grid`, `chart_spec`) that keep them in
+  the next `show`. A card the host draws again without its result calls `show`
+  with the spec it was given.
+
+## [1.0.1] - 2026-10-21
+
+Released together for `flint-chart`, `flint-chart-mcp`, and the Copilot Canvas plugin.
+
+### Fixed
+
+- Plotly: a Line or Area Chart's `chartProperties.interpolate` now outranks the theme's line
+  curve, an explicit `linear` included. A theme such as Cartoon (`monotone`) or De Stijl (`step`)
+  only supplies a curve when the chart asks for none (#149).
+- MCP: a small chart whose rows were passed inline also rides in `show`'s `structuredContent`, so
+  a card that VS Code's Agent Host draws again (it drops `_meta`) can still render it. Rows read
+  from a local `data.url` file never do (microsoft/vscode#343243).
+- The npm publish workflow waits up to 20 minutes for a new version and asks the registry
+  directly, instead of a cached answer.
+
 ## [1.0.0] - 2026-10-19
 
 Released together for `flint-chart`, `flint-chart-mcp`, and the Copilot Canvas plugin.
@@ -492,7 +521,8 @@ Released together for `flint-chart`, `flint-chart-mcp`, and the Copilot Canvas p
 - Treated only lowercase `start` and `end` Waterfall Type values as total
   anchors in Vega-Lite; other values now remain floating deltas colored by sign.
 
-[Unreleased]: https://github.com/microsoft/flint-chart/compare/1.0.0...HEAD
+[Unreleased]: https://github.com/microsoft/flint-chart/compare/1.0.1...HEAD
+[1.0.1]: https://github.com/microsoft/flint-chart/compare/1.0.0...1.0.1
 [1.0.0]: https://github.com/microsoft/flint-chart/compare/0.5.1...1.0.0
 [0.5.1]: https://github.com/microsoft/flint-chart/compare/0.5...0.5.1
 [0.5.0]: https://github.com/microsoft/flint-chart/compare/0.4.0...0.5.0

@@ -30,10 +30,8 @@ renders **locally**.
 | `list_interaction_presets` | `chartType?`, `type?` | interaction presets: what each does, what it needs from the chart, reset gestures, and every option it accepts |
 | `list_themes` | optional preset `id` | shipped visual themes, plus guidance for a selected theme |
 | `get_flint_skill` | `skill` (`chart`/`theme`/`interaction`/`board`) + `section?` | a bundled skill as markdown, or one `## ` section of it |
-| `create_chart` | spec + optional `updates`, `view` | a chart built off screen: its report (✓/✗ per update op) and its id |
-| `create_board` | headline, deck, source, `charts`, optional `link_spec` | a board of several charts built off screen: its report, layout, links and review |
-| `update_chart`, `add_chart`, `remove_chart`, `update_board` | `id` + the fields to change | the next version's report; nothing is drawn |
-| `show` | `id` | a live **UI** card (MCP App) with the chart or board's current version: SVG preview + editing panel, with its ChartUpdate layers applied |
+| `validate_board` | headline, deck, source, `charts`, optional `link_spec`, `grid` | a board of several charts checked without drawing: its report, layout, links and review |
+| `show` | `chart` (spec + optional `updates`, `view`) or `board` (as `validate_board`) | a live **UI** card (MCP App) with the chart or board: SVG preview + editing panel, with its ChartUpdate layers applied, and the same report |
 
 ## Visual themes
 
@@ -63,9 +61,10 @@ for supported fields and merge behavior.
 ## MCP App: live chart view
 
 In hosts that support MCP App UIs (e.g. Claude Desktop), `show` opens a card
-with a chart or board built by `create_chart` or `create_board`. The agent fixes
-what the report asks before it calls `show`, so each turn shows one card; later
-changes open a new card and earlier cards keep the version they showed. The
+with the chart or board spec it is given. The agent checks the spec with
+`validate_chart` or `validate_board` and fixes what the report asks before it
+calls `show`, so each turn shows one card; later changes open a new card and
+earlier cards keep what they showed. The
 card renders the spec live (Vega-Lite → SVG) and shows
 a customization panel built from Flint's own option model — chart type, channel
 bindings, chart properties (corner radius, stack mode, donut hole, …), and
@@ -74,9 +73,11 @@ run entirely in the host UI; no data leaves the host. The UI is a single
 self-contained HTML bundle served as the
 `ui://flint-chart/view.html` resource and built with `npm run build:ui`.
 
-Charts and boards live in the server process's memory between `create_chart`
-and `show`, so a deployment behind a load balancer needs one instance or sticky
-sessions.
+The server keeps nothing between calls: every tool builds the chart or board
+again from the spec it is given, so it runs stateless behind any number of
+instances. The reader's changes on a card (a theme, an arrangement, panel edits)
+stay on that card and reach the agent in the card's context, as the fields to
+pass to the next `show`.
 
 ## Resources and prompts
 
@@ -96,7 +97,7 @@ The server instructions tell the agent to call `get_flint_skill` before it
 writes a spec, so the skills reach the agent in hosts that do not surface MCP
 resources or prompts to the model. You can also include `flint://agent-skill` or
 run the `author_flint_chart` prompt before asking the agent to call
-`create_chart`, `render_chart`, `compile_chart`, or `validate_chart`.
+`validate_chart`, `show`, `render_chart`, or `compile_chart`.
 
 When creating or substantially customizing a visual theme, load
 `flint://theme-skill` or run `author_flint_theme`. Use `list_themes` separately

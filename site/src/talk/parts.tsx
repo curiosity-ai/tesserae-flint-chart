@@ -217,6 +217,18 @@ export function lineDiff(prev: unknown, next: unknown, width = 60): { plus: numb
   return { plus, minus: addedLines(b, a).filter(Boolean).length };
 }
 export const plainRows = (rows: CodeRow[]): CodeRow[] => rows.map(({ text, gap }) => ({ text, gap }));
+
+// Layouts for a code panel: the same rows, laid out for whatever width the panel gives them.
+type Layout = (cols: number) => CodeRow[];
+/** A step's spec, its changes marked and unchanged runs folded, at the panel's width. */
+export const stepLayout = (next: unknown, prev?: unknown): Layout => (cols) => stepRows(next, prev, cols);
+/** The whole new spec, its changes marked, at the panel's width. */
+export const fullLayout = (next: unknown, prev: unknown): Layout => (cols) => fullRows(next, prev, cols);
+/** A spec at the panel's width, the lines matching `hot` marked. */
+export const specLayout = (value: unknown, hot?: RegExp): Layout => (cols) =>
+  specText(value, cols).split('\n').map((text) => (hot?.test(text) ? { text, hot: true } : { text }));
+/** A layout with its marks taken off: the previous step, shown plain. */
+export const plainLayout = (layout: Layout): Layout => (cols) => plainRows(layout(cols));
 export const textRows = (text: string, hot = false): CodeRow[] => text.trimEnd().split('\n').map((t) => ({ text: t, hot }));
 
 const CHAR_W = 0.62, LINE_H = 1.45;
@@ -245,17 +257,29 @@ function sampled(rows: CodeRow[], k: number): CodeRow[] {
 }
 
 /**
- * Code set at the largest size that fits its box. Long lines wrap under their own indent. When the
- * rows still do not fit, each changed run shows its first lines and says how many more it has.
+ * Rows for a code panel: fixed, or laid out for a width in characters. A spec laid out for the
+ * panel's own width breaks between its keys, where a fixed layout would be wrapped mid-pair.
  */
-export function Code({ rows, max = 22, min = 14, tone = 'flint' }: {
-  rows: CodeRow[]; max?: number; min?: number;
+export type CodeSource = CodeRow[] | ((cols: number) => CodeRow[]);
+
+/** The narrowest layout a spec is reflowed to; below it, lines wrap under their indent instead. */
+const MIN_COLS = 28;
+const colsAt = (w: number, size: number) => Math.max(8, Math.floor(w / (CHAR_W * size)));
+
+/**
+ * Code set at the largest size that fits its box. A spec given as a layout function is reflowed to
+ * the columns each size allows; fixed rows wrap long lines under their own indent. When the rows
+ * still do not fit, each changed run shows its first lines and says how many more it has.
+ */
+export function Code({ rows: source, max = 22, min = 14, tone = 'flint' }: {
+  rows: CodeSource; max?: number; min?: number;
   /** Flint code marks its changes in blue; Vega-Lite code marks them in red, to show what it costs. */
   tone?: 'flint' | 'vl';
 }) {
   const ref = useRef<HTMLPreElement>(null);
-  const [fit, setFit] = useState<{ size: number; k: number; shown: number }>({ size: max, k: Infinity, shown: Infinity });
-  const key = rows.map((r) => (r.hot ? '+' : r.gap ? '~' : ' ') + r.text).join('\n');
+  const [fit, setFit] = useState<{ size: number; k: number; shown: number; cols: number }>({ size: max, k: Infinity, shown: Infinity, cols: 60 });
+  const layout = (cols: number) => (typeof source === 'function' ? source(Math.max(MIN_COLS, cols - 1)) : source);
+  const key = layout(60).map((r) => (r.hot ? '+' : r.gap ? '~' : ' ') + r.text).join('\n');
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -266,24 +290,29 @@ export function Code({ rows, max = 22, min = 14, tone = 'flint' }: {
       if (w <= 0 || h <= 0) return;
       // Screen lines a list of rows takes at a size, wrapping under each row's indent.
       const lines = (list: CodeRow[], size: number) => {
-        const cols = Math.max(8, Math.floor(w / (CHAR_W * size)));
+        const cols = colsAt(w, size);
         return list.map(({ text }) => {
           const hang = Math.min(cols - 4, indentOf(text) + 2);
           return text.length <= cols ? 1 : 1 + Math.ceil((text.length - cols) / (cols - hang));
         });
       };
       const fits = (list: CodeRow[], size: number) => sum(lines(list, size)) <= Math.floor(h / (LINE_H * size));
-      let next = { size: min, k: Infinity, shown: Infinity };
+      const narrow = colsAt(w, min);
+      const rows = layout(narrow);
+      let next = { size: min, k: Infinity, shown: Infinity, cols: narrow };
       let found = false;
-      for (let size = max; size >= min && !found; size -= 0.5) if (fits(rows, size)) { next = { size, k: Infinity, shown: Infinity }; found = true; }
-      for (let k = rows.length; k >= 1 && !found; k--) if (fits(sampled(rows, k), min)) { next = { size: min, k, shown: Infinity }; found = true; }
+      for (let size = max; size >= min && !found; size -= 0.5) {
+        const cols = colsAt(w, size);
+        if (fits(layout(cols), size)) { next = { size, k: Infinity, shown: Infinity, cols }; found = true; }
+      }
+      for (let k = rows.length; k >= 1 && !found; k--) if (fits(sampled(rows, k), min)) { next = { size: min, k, shown: Infinity, cols: narrow }; found = true; }
       if (!found) {
         const list = sampled(rows, 1), per = lines(list, min), budget = Math.floor(h / (LINE_H * min));
         let used = 1, shown = 0;
         while (shown < list.length && used + per[shown] <= budget) used += per[shown++];
-        next = { size: min, k: 1, shown };
+        next = { size: min, k: 1, shown, cols: narrow };
       }
-      setFit((f) => (f.size === next.size && f.k === next.k && f.shown === next.shown ? f : next));
+      setFit((f) => (f.size === next.size && f.k === next.k && f.shown === next.shown && f.cols === next.cols ? f : next));
     };
     measure();
     const ro = new ResizeObserver(measure);
@@ -291,7 +320,7 @@ export function Code({ rows, max = 22, min = 14, tone = 'flint' }: {
     return () => ro.disconnect();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, max, min]);
-  const list = sampled(rows, fit.k);
+  const list = sampled(layout(fit.cols), fit.k);
   const shown = fit.shown < list.length ? [...list.slice(0, fit.shown), hiddenRow(list.slice(fit.shown))] : list;
   return (
     <pre ref={ref} className={`talk-code ${tone}`} style={{ fontSize: fit.size }}>

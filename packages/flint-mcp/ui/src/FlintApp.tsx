@@ -18,8 +18,14 @@ declare const __FLINT_MCP_VERSION__: string;
 
 /** How long the card waits for its result before it says it cannot be redrawn here. */
 const RESULT_WAIT_MS = 6000;
-const NOT_REDRAWN =
-  'This cannot be redrawn here: the call that showed it did not reach this card again, as can happen when a conversation is reopened. Ask Claude to show it again.';
+const NOT_REDRAWN = 'The chart cannot be redrawn here. Ask the agent to show it again.';
+
+/** The board a show result hands the card: in _meta, or in structuredContent where a host kept only that. */
+function boardOf(result: { _meta?: unknown; structuredContent?: unknown }): Board | undefined {
+  const meta = result._meta as { flint?: { board?: Board } } | undefined;
+  const structured = result.structuredContent as { flint?: { board?: Board } } | undefined;
+  return meta?.flint?.board ?? structured?.flint?.board;
+}
 
 export function FlintApp() {
   const [shown, setShown] = useState<Board | null>(null);
@@ -27,6 +33,8 @@ export function FlintApp() {
   const [hostContext, setHostContext] = useState<McpUiHostContext | undefined>();
   const shownSeen = useRef(false);
   shownSeen.current = shown !== null;
+  // The spec show was called with: a card the host draws again without its result draws it again from this.
+  const toolInput = useRef<Record<string, unknown> | null>(null);
 
   const { app, error } = useApp({
     appInfo: { name: 'Flint', version: __FLINT_MCP_VERSION__ },
@@ -36,13 +44,16 @@ export function FlintApp() {
       app.onteardown = async () => ({});
       app.onerror = (err) => console.error(err);
       app.onhostcontextchanged = (params) => setHostContext((prev) => ({ ...prev, ...params }));
+      app.ontoolinput = (params) => {
+        toolInput.current = (params.arguments as Record<string, unknown> | undefined) ?? null;
+      };
       app.ontoolresult = (result) => {
-        const { _meta, content } = result as { _meta?: { flint?: { board?: Board } }; content?: { type: string; text?: string }[] };
+        const { content } = result as { content?: { type: string; text?: string }[] };
         if (result.isError) {
           setFailed(content?.find((part) => part.type === 'text')?.text ?? '');
           return;
         }
-        const next = _meta?.flint?.board;
+        const next = boardOf(result);
         if (next) {
           setFailed(null);
           setShown(next);
@@ -55,11 +66,25 @@ export function FlintApp() {
     if (app) setHostContext(app.getHostContext());
   }, [app]);
 
-  // A reopened conversation may not hand the card its result again; the card then says so instead of waiting.
+  // A reopened conversation may not hand the card its result again. The server keeps nothing, so the card
+  // calls show again with the spec it was called with; without one, or a host that runs no tools, it says so.
   useEffect(() => {
     if (!app) return;
     const handle = window.setTimeout(() => {
-      if (!shownSeen.current) setFailed((reason) => reason ?? NOT_REDRAWN);
+      if (shownSeen.current) return;
+      const args = toolInput.current;
+      if (!args || !app.getHostCapabilities()?.serverTools) {
+        setFailed((reason) => reason ?? NOT_REDRAWN);
+        return;
+      }
+      app.callServerTool({ name: 'show', arguments: args }).then(
+        (result) => {
+          const next = !result.isError ? boardOf(result) : undefined;
+          if (next) setShown(next);
+          else setFailed((reason) => reason ?? NOT_REDRAWN);
+        },
+        () => setFailed((reason) => reason ?? NOT_REDRAWN),
+      );
     }, RESULT_WAIT_MS);
     return () => window.clearTimeout(handle);
   }, [app]);

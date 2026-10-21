@@ -7,7 +7,7 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { ListRootsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { pathToFileURL } from 'node:url';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { createServer } from '../src/server.js';
+import { createServer, skillSection } from '../src/server.js';
 
 const barChart = {
   data: {
@@ -51,13 +51,11 @@ afterAll(async () => {
   await server?.close();
 });
 
-/** create_chart, then show: the report, and the chart as the card is handed it. */
+/** show with a chart spec: the report, and the chart as the card is handed it. */
 async function drawChart(args: Record<string, unknown>, on: Client = client): Promise<{ created: any; chart?: any }> {
-  const created: any = await on.callTool({ name: 'create_chart', arguments: args });
+  const created: any = await on.callTool({ name: 'show', arguments: { chart: args } });
   if (created.isError) return { created };
-  const id = created.content[0].text.match(/^Chart (chart-[0-9a-f]+)/)[1];
-  const shown: any = await on.callTool({ name: 'show', arguments: { id } });
-  return { created, chart: shown._meta.flint.board.charts[0] };
+  return { created, chart: created._meta.flint.board.charts[0] };
 }
 
 describe('MCP server with client roots', () => {
@@ -93,22 +91,14 @@ describe('MCP server', () => {
     const { tools } = await client.listTools();
     const names = tools.map((t) => t.name).sort();
     expect(names).toEqual([
-      'add_chart',
       'compile_chart',
-      'create_board',
-      'create_chart',
       'get_flint_skill',
       'list_chart_types',
       'list_interaction_presets',
       'list_themes',
-      'remove_chart',
       'render_chart',
-      'restore_board',
-      'set_board_layout',
-      'set_board_theme',
       'show',
-      'update_board',
-      'update_chart',
+      'validate_board',
       'validate_chart',
     ]);
   });
@@ -143,6 +133,15 @@ describe('MCP server', () => {
     });
     expect(bad.isError).toBe(true);
     expect(bad.content[0].text).toContain('"Update the chart"');
+  });
+
+  it('skillSection takes a heading by its start, or without case and punctuation, when only one heading fits', () => {
+    const text = '# Skill\n\n## Step 4 — write the spec\nA\n\n## Link charts, and more\nB\n\n## Update the chart\nC\n\n## Update the board\nD\n';
+    expect(skillSection(text, 'step 4 write the spec')).toBe('## Step 4 — write the spec\nA\n');
+    expect(skillSection(text, '## Link charts')).toBe('## Link charts, and more\nB\n');
+    expect(() => skillSection(text, 'Update')).toThrow('No section "Update"');
+    expect(() => skillSection(text, 'Upd')).toThrow('No section "Upd"');
+    expect(skillSection(text, 'Update the board')).toBe('## Update the board\nD\n');
   });
 
   it('render_chart returns inline PNG image content', async () => {
@@ -283,7 +282,7 @@ describe('MCP server', () => {
     expect(dropped[0].message).toContain('"legend-toggle" requires a discrete legend; Bar Chart has none');
   });
 
-  it('validate_chart and create_chart take updates beside the input, and reject a malformed layer', async () => {
+  it('validate_chart and show take updates beside the input, and reject a malformed layer', async () => {
     const base = {
       data: { values: [{ region: 'East', revenue: 120 }, { region: 'West', revenue: 90 }] },
       semantic_types: { revenue: 'Quantity' },
@@ -318,13 +317,11 @@ describe('MCP server', () => {
     const view = await drawChart({ ...base, updates: [layer] });
     expect(view.created.isError).toBeFalsy();
     expect(view.created.content[0].text).toContain('Agent updates (yours):\n- agent:\n  ✓ emphasizes marks where region = East');
-    expect(view.created.structuredContent).toBeUndefined();
-    expect(view.created._meta).toBeUndefined();
     expect(view.chart.updates).toEqual([layer]);
     const viewBad = await drawChart({ ...base, updates: [{ id: '', ops: [] }] });
     expect(viewBad.created.isError).toBe(true);
-    expect(viewBad.created.content[0].text).toContain('Chart spec has errors: updates[0]: "id" must be a non-empty string.');
-    expect(viewBad.created.content[0].text).toContain('Nothing was kept; fix the spec and call create_chart again.');
+    expect(viewBad.created.content[0].text).toContain('Nothing was drawn: chart ✗ not drawn: updates[0]: "id" must be a non-empty string.');
+    expect(viewBad.created.content[0].text).toContain('Fix the spec and call show again.');
     const viewOff = await drawChart({ ...base, updates: [layer, shorthand] });
     expect(viewOff.created.isError).toBeFalsy();
     expect(viewOff.chart.updates).toEqual([layer, shorthand]);
@@ -332,7 +329,7 @@ describe('MCP server', () => {
     expect(viewOff.created.content[0].text).toContain('✗ overlay "goal"');
   });
 
-  it('create_chart opens a chart as its table when asked, and draws a Table chart type as a table', async () => {
+  it('show opens a chart as its table when asked, and draws a Table chart type as a table', async () => {
     const data = { values: [{ region: 'East', revenue: 120 }, { region: 'West', revenue: 90 }] };
     const bars = { data, chart_spec: { chartType: 'Bar Chart', encodings: { x: 'region', y: 'revenue' } } };
     const asTable = await drawChart({ ...bars, view: 'table' });
@@ -346,36 +343,26 @@ describe('MCP server', () => {
     expect(table.chart.view).toBeUndefined();
   });
 
-  it('create_chart keeps nothing for an invalid spec', async () => {
+  it('show draws nothing for an invalid spec, and the card shows why', async () => {
     const res: any = await client.callTool({
-      name: 'create_chart',
-      arguments: { ...barChart, chart_spec: { ...barChart.chart_spec, chartType: 'Not A Real Chart' } },
+      name: 'show',
+      arguments: { chart: { ...barChart, chart_spec: { ...barChart.chart_spec, chartType: 'Not A Real Chart' } } },
     });
     expect(res.isError).toBe(true);
     expect(res.content[0].text).toContain('Not A Real Chart');
-    expect(res.content[0].text).toContain('call create_chart again');
-    expect(res._meta).toBeUndefined();
+    expect(res.content[0].text).toContain('call show again');
+    expect(res._meta).toEqual({ flint: { error: res.content[0].text } });
   });
 
-  it('builds a chart off screen, changes it by id, and shows each version in a new card', async () => {
-    const created: any = await client.callTool({ name: 'create_chart', arguments: barChart });
-    expect(created.content[0].text).toMatch(/^Chart chart-[0-9a-f]+, version 1, not on screen yet/);
-    const id = created.content[0].text.match(/^Chart (chart-[0-9a-f]+)/)[1];
-    const first: any = await client.callTool({ name: 'show', arguments: { id } });
-    expect(first.content[0].text).toContain(`Chart ${id} version 1 is on screen in a new card`);
-    expect(first._meta.flint.board).toMatchObject({ id, kind: 'chart', version: 1 });
-
-    const retitled: any = await client.callTool({ name: 'update_chart', arguments: { id, chart_spec: { ...barChart.chart_spec, title: 'Revenue' } } });
-    expect(retitled.content[0].text).toMatch(/^Chart chart-[0-9a-f]+, version 2, not on screen yet/);
-    const second: any = await client.callTool({ name: 'show', arguments: { id } });
+  it('validate_chart checks a chart and keeps nothing; show draws the spec it is given, each in a new card', async () => {
+    const checked: any = await client.callTool({ name: 'validate_chart', arguments: { ...barChart, backend: 'vegalite' } });
+    expect(checked.content[1].text).toContain('Bar Chart');
+    const first: any = await client.callTool({ name: 'show', arguments: { chart: barChart } });
+    expect(first.content[0].text).toContain('The chart is on screen in a new card.');
+    expect(first._meta.flint.board).toMatchObject({ kind: 'chart', charts: [{ id: 'chart' }] });
+    const second: any = await client.callTool({ name: 'show', arguments: { chart: { ...barChart, chart_spec: { ...barChart.chart_spec, title: 'Revenue' } } } });
     expect(second._meta.flint.board.charts[0].input.chart_spec.title).toBe('Revenue');
     expect(first._meta.flint.board.charts[0].input.chart_spec.title).toBe(barChart.chart_spec.title);
-
-    for (const [name, args] of [['add_chart', { id, chart: { id: 'more', ...barChart } }], ['remove_chart', { id, chart_id: 'chart' }], ['update_board', { id, title: 'T' }]] as const) {
-      const refused: any = await client.callTool({ name, arguments: args });
-      expect(refused.isError).toBe(true);
-      expect(refused.content[0].text).toContain(`${id} is a chart, not a board`);
-    }
   });
 
   it('a misshapen op is rejected with its shape, and the schema lists every op shape', async () => {
@@ -394,17 +381,16 @@ describe('MCP server', () => {
       { op: 'set-annotation', annotations: [{ kind: 'rule', x: '2022-12-01', label: 'ChatGPT launch' }] },
     ]) {
       const bad: any = await client.callTool({
-        name: 'create_chart',
-        arguments: { ...base, updates: [{ id: 'agent', ops: [op] }] },
+        name: 'show',
+        arguments: { chart: { ...base, updates: [{ id: 'agent', ops: [op] }] } },
       });
       expect(bad.isError).toBe(true);
       expect(bad.content[0].text).toContain('set-annotation has a missing or malformed "target". Shape:');
     }
     const { tools } = await client.listTools();
-    const view = tools.find((tool) => tool.name === 'create_chart')!;
+    const view = tools.find((tool) => tool.name === 'show')!;
     const schemaText = JSON.stringify(view.inputSchema);
     expect(schemaText).toContain("set-annotation { target: UpdateTarget, value: { text, anchor?: 'segment' | 'point' } | null }");
-    expect(view.description).toContain('pass interaction_spec');
   });
 
   it('render_chart surfaces assembly errors as isError', async () => {
@@ -579,7 +565,7 @@ describe('MCP server', () => {
     );
 
     expect(canvasSkill.startsWith(`${repoSkill.trimEnd()}\n\n## Copilot CLI chart canvas\n`)).toBe(true);
-    expect(canvasSkill).toContain('prefer it over `create_chart` and `show`');
+    expect(canvasSkill).toContain('prefer it over `validate_chart` and `show`');
     expect(canvasSkill).toContain('resolved inline `data.values`');
   });
 

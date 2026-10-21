@@ -4,7 +4,6 @@
 import { createServer as createHttpServer, type Server } from 'node:http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { BoardStore } from './board.js';
 import { createServer, resolveBackends, VERSION, type CreateServerOptions } from './server.js';
 
 /** Default endpoint path the MCP Streamable HTTP transport is served from. */
@@ -89,7 +88,6 @@ export function createMcpRequestListener(
     // user. Block local file references by default (secure-by-default); pass
     // disableFileReference:false explicitly to opt back in.
     disableFileReference: options.disableFileReference ?? true,
-    boards: new BoardStore(),
   };
   const rebindingProtection =
     (options.allowedHosts?.length ?? 0) > 0 || (options.allowedOrigins?.length ?? 0) > 0;

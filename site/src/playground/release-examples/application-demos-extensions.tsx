@@ -46,12 +46,14 @@ const MCP_CHART_INPUT: ChartAssemblyInput = {
 } as ChartAssemblyInput;
 
 const MCP_CHART_CALL = JSON.stringify({
-  name: 'create_chart',
+  name: 'show',
   arguments: {
-    interaction_spec: MCP_CHART_INPUT.interaction_spec,
-    chart_spec: MCP_CHART_INPUT.chart_spec,
-    semantic_types: MCP_CHART_INPUT.semantic_types,
-    data: { values: [HEALTH_ROWS[0], `… ${HEALTH_ROWS.length - 1} more rows`] },
+    chart: {
+      interaction_spec: MCP_CHART_INPUT.interaction_spec,
+      chart_spec: MCP_CHART_INPUT.chart_spec,
+      semantic_types: MCP_CHART_INPUT.semantic_types,
+      data: { values: [HEALTH_ROWS[0], `… ${HEALTH_ROWS.length - 1} more rows`] },
+    },
   },
 }, null, 2);
 

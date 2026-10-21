@@ -17,11 +17,9 @@ opens that chart locally.
 
 | Tool | Use it for |
 |------|------------|
-| `create_chart` | Build a chart and return a report of it with its id; nothing is drawn yet. |
-| `create_board` | Build a board of several charts under one headline; nothing is drawn yet. |
-| `update_chart`, `add_chart`, `remove_chart`, `update_board` | Change a chart or board by its id. |
-| `show` | Preferred default when the host supports MCP Apps: open a card with the chart or board, drawn live with chart options. |
-| `validate_chart` | Check whether a Flint input is valid and inspect warnings, errors, and computed size. |
+| `validate_chart` | Check a chart spec without drawing it: the report, warnings, errors, and computed size. |
+| `validate_board` | Check a board of several charts under one headline without drawing it. |
+| `show` | Preferred default when the host supports MCP Apps: open a card with the chart or board spec it is given, drawn live with chart options. The server keeps nothing between calls. |
 | `render_chart` | Render a static PNG or SVG locally when you need an artifact or the host has no MCP App UI. |
 | `compile_chart` | Return backend-native Vega-Lite, ECharts, or Chart.js JSON. |
 | `list_chart_types` | Inspect supported chart types, encoding channels, and the interaction presets each chart type supports. |
@@ -221,7 +219,7 @@ npx -y flint-chart-mcp --backends vegalite,echarts
 FLINT_MCP_BACKENDS=vegalite,echarts npx -y flint-chart-mcp
 ```
 
-Use `create_chart` then `show` when the user wants to see and iterate on a
+Use `validate_chart` then `show` when the user wants to see and iterate on a
 chart in a host with MCP App support. Use `render_chart` for a static artifact. Use
 `compile_chart` when the user needs backend-native JSON for another renderer or
 editor.
@@ -241,7 +239,7 @@ Then try a first chart:
 Use Flint MCP to create a bar chart from these rows:
 [{"region":"North","revenue":120},{"region":"South","revenue":90}]
 Use region as Category and revenue as Quantity.
-Build it with create_chart and open it with show if this client supports MCP Apps; otherwise render an SVG.
+Check it with validate_chart and open it with show if this client supports MCP Apps; otherwise render an SVG.
 ```
 
 If `list_chart_types` works but a local file chart fails, check that the file

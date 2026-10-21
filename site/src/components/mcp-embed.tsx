@@ -59,32 +59,7 @@ export function useMockApp(onContext?: (text: string) => void) {
   }), [onContext]);
 }
 
-/**
- * A host for the board card: it answers the board's server tools as the server would, so the card
- * stays live and keeps the reader's theme and arrangement.
- */
-export function useMockBoardApp(board: Board, onContext?: (text: string) => void) {
-  return useMemo(() => {
-    let held: Board = board;
-    const save = (patch: Partial<Board>) => {
-      held = { ...held, ...patch, version: held.version + 1 };
-      return { structuredContent: { board: held, version: held.version } };
-    };
-    return {
-      sendMessage: async () => undefined,
-      updateModelContext: async ({ content }: ModelContext) => {
-        onContext?.(content.map((part) => part.text).join('\n'));
-      },
-      getHostCapabilities: () => ({ serverTools: {} }),
-      downloadFile: async () => ({}),
-      callServerTool: async ({ name, arguments: args }: { name: string; arguments: Record<string, unknown> }) => {
-        if (name === 'restore_board') return { structuredContent: { board: held } };
-        if (name === 'set_board_theme') {
-          return save({ reader_theme: args.reset ? undefined : { theme: (args.theme ?? null) as NonNullable<Board['reader_theme']>['theme'] } });
-        }
-        if (name === 'set_board_layout') return save({ grid: (args.grid ?? undefined) as Board['grid'] });
-        return { isError: true };
-      },
-    };
-  }, [board, onContext]);
+/** A host for the board card: the card keeps the reader's theme and arrangement itself, and sends its context. */
+export function useMockBoardApp(onContext?: (text: string) => void) {
+  return useMockApp(onContext);
 }

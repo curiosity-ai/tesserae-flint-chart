@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { assembleECharts, assembleVegaLite, type ChartAssemblyInput } from 'flint-chart';
+import { assembleECharts, assemblePlotly, assembleVegaLite, type ChartAssemblyInput } from 'flint-chart';
 import { mountChart, type ChartUpdate } from 'flint-chart/interactive';
 import { genEChartsSlopeTests, TEST_GENERATORS } from 'flint-chart/test-data';
 import { compile } from 'vega-lite';
@@ -609,6 +609,142 @@ function ThemePickingGym() {
   );
 }
 
+// ---------------------------------------------------------------- 1.0.1 fixes
+const LAB_ROWS = [
+  { date: '2025-01-01', value: 4 }, { date: '2025-03-01', value: 7 }, { date: '2025-05-01', value: 3 },
+  { date: '2025-07-01', value: 8 }, { date: '2025-09-01', value: 5 }, { date: '2025-11-01', value: 6 },
+];
+const CURVE_THEMES = [undefined, 'cartoon', 'de-stijl'] as const;
+const CURVES = [undefined, 'linear', 'monotone', 'step-after'] as const;
+/** What Plotly should draw: the chart's curve when it asks for one, else the theme's. */
+const EXPECTED_SHAPE: Record<string, string> = { linear: 'linear', monotone: 'spline', 'step-after': 'hv' };
+const THEME_SHAPE: Record<string, string> = { cartoon: 'spline', 'de-stijl': 'hv|vh|hvh', plain: 'linear' };
+
+function curveInput(curve: string | undefined, theme: string | undefined): ChartAssemblyInput {
+  return {
+    data: { values: LAB_ROWS },
+    semantic_types: { date: 'DateTime', value: 'Quantity' },
+    chart_spec: {
+      chartType: 'Line Chart',
+      encodings: { x: 'date', y: 'value' },
+      baseSize: { width: 240, height: 140 },
+      ...(curve ? { chartProperties: { interpolate: curve } } : {}),
+    },
+    ...(theme ? { theme_spec: theme } : {}),
+  } as ChartAssemblyInput;
+}
+
+function CurveCase({ curve, theme }: { curve: string | undefined; theme: string | undefined }) {
+  const input = useMemo(() => curveInput(curve, theme), [curve, theme]);
+  const shape = useMemo(() => String((assemblePlotly(input) as any).data?.[0]?.line?.shape ?? 'linear'), [input]);
+  const expected = curve ? EXPECTED_SHAPE[curve] : THEME_SHAPE[theme ?? 'plain'];
+  const passed = new RegExp(`^(${expected})$`).test(shape);
+  return (
+    <div style={{ border: `1px solid ${passed ? '#cfe3d4' : '#f0c8c8'}`, borderRadius: 6, padding: 8, background: '#fff' }}>
+      <div style={{ fontSize: 11, marginBottom: 4 }}>
+        <strong>{theme ?? 'no theme'}</strong> · interpolate: <code>{curve ?? '(unset)'}</code>
+      </div>
+      <ScaleToFit height={150} minHeight={110} adaptiveHeight padding={0}>
+        <FlintView spec={input} backend="plotly" renderer="svg" compact />
+      </ScaleToFit>
+      <div style={{ fontSize: 11, marginTop: 4, color: passed ? '#1a7f37' : '#b42318' }}>
+        line.shape <code>{shape}</code> {passed ? '✓' : `✗ expected ${expected}`}
+      </div>
+    </div>
+  );
+}
+
+function PlotlyCurveGym() {
+  return (
+    <section style={{ width: 'min(100%, 1080px)' }} data-gym="plotly-curve">
+      <header style={{ marginBottom: 8 }}>
+        <h2 style={{ margin: 0, fontSize: 16 }}>#149 · Plotly keeps the chart&apos;s own curve under a theme</h2>
+        <p style={{ margin: '2px 0 0', fontSize: 11, color: siteTheme.textMuted }}>
+          Before the fix, Cartoon (<code>monotone</code>) and De Stijl (<code>step</code>) bent an explicit{' '}
+          <code>interpolate: &quot;linear&quot;</code> on Plotly. Now the chart&apos;s choice wins, and the theme&apos;s
+          curve applies only in the first column, where the chart asks for none. Rows: theme; columns: the chart&apos;s
+          interpolate. Each cell is drawn with Plotly and checks the compiled <code>line.shape</code>.
+        </p>
+      </header>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8 }}>
+        {CURVE_THEMES.flatMap((theme) => CURVES.map((curve) => (
+          <CurveCase key={`${theme ?? 'plain'}-${curve ?? 'unset'}`} curve={curve} theme={theme} />
+        )))}
+      </div>
+    </section>
+  );
+}
+
+/** Mirrors RESULT_COPY_LIMIT and fitsInResult in packages/flint-mcp/src/board.ts (which needs Node). */
+const RESULT_COPY_LIMIT = 4096;
+type CardCase = { id: string; label: string; rows: Record<string, unknown>[]; fromFile?: boolean };
+const CARD_CASES: CardCase[] = [
+  { id: 'small', label: 'Small chart, rows passed inline', rows: SPENDING_SAMPLE() },
+  { id: 'large', label: '200 rows passed inline', rows: Array.from({ length: 200 }, (_, i) => ({ month: `M${i}`, value: (i * 37) % 101 })) },
+  { id: 'file', label: 'Small chart, rows read from a local data.url file', rows: SPENDING_SAMPLE(), fromFile: true },
+];
+function SPENDING_SAMPLE() {
+  return [{ month: 'Jan', value: 12 }, { month: 'Feb', value: 18 }, { month: 'Mar', value: 9 }, { month: 'Apr', value: 15 }];
+}
+
+function CardCaseView({ item }: { item: CardCase }) {
+  const board = useMemo(() => ({
+    id: `chart-${item.id}`, kind: 'chart',
+    charts: [{
+      id: 'chart',
+      input: {
+        data: { values: item.rows },
+        semantic_types: { month: 'Category', value: 'Quantity' },
+        chart_spec: { chartType: 'Bar Chart', encodings: { x: 'month', y: 'value' }, baseSize: { width: 260, height: 150 } },
+      },
+      ...(item.fromFile ? { fromFile: true } : {}),
+    }],
+  }), [item]);
+  const bytes = new TextEncoder().encode(JSON.stringify(board)).length;
+  const copied = !item.fromFile && bytes <= RESULT_COPY_LIMIT;
+  // What the Agent Host hands a card it draws again: content and structuredContent, never _meta.
+  const rebuilt: { structuredContent?: { flint?: { board?: typeof board } } } = copied ? { structuredContent: { flint: { board } } } : {};
+  const drawn = rebuilt.structuredContent?.flint?.board;
+  return (
+    <div style={{ border: `1px solid ${drawn ? '#cfe3d4' : '#e6dcc4'}`, borderRadius: 6, padding: 8, background: '#fff' }}>
+      <div style={{ fontSize: 11, marginBottom: 4 }}><strong>{item.label}</strong></div>
+      <div style={{ fontSize: 11, color: siteTheme.textMuted, marginBottom: 6 }}>
+        {bytes.toLocaleString()} bytes · structuredContent: <code>{copied ? 'yes' : 'no'}</code>
+        {item.fromFile ? ' (file rows never enter the conversation)' : !copied ? ` (over ${RESULT_COPY_LIMIT} bytes)` : ''}
+      </div>
+      {drawn ? (
+        <ScaleToFit height={160} minHeight={110} adaptiveHeight padding={0}>
+          <FlintView spec={drawn.charts[0].input as ChartAssemblyInput} renderer="svg" compact />
+        </ScaleToFit>
+      ) : (
+        <div style={{ height: 120, display: 'grid', placeItems: 'center', background: '#faf7f0', borderRadius: 4, fontSize: 12, color: '#7a5d1a', textAlign: 'center', padding: 8 }}>
+          <div><strong>Not drawn</strong><br />Waits for the VS Code fix (microsoft/vscode#343243).</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function McpRedrawGym() {
+  return (
+    <section style={{ width: 'min(100%, 1080px)' }} data-gym="mcp-redraw">
+      <header style={{ marginBottom: 8 }}>
+        <h2 style={{ margin: 0, fontSize: 16 }}>MCP · cards the Agent Host draws again</h2>
+        <p style={{ margin: '2px 0 0', fontSize: 11, color: siteTheme.textMuted }}>
+          VS Code&apos;s Agent Host rebuilds a card&apos;s result from <code>content</code> and{' '}
+          <code>structuredContent</code> and drops <code>_meta</code>, where <code>show</code> puts the chart. Now{' '}
+          <code>show</code> also puts a small inline chart in <code>structuredContent</code>. Each card simulates that
+          rebuilt result and the card&apos;s read path; the size and file rules mirror <code>fitsInResult</code> in{' '}
+          <code>packages/flint-mcp/src/board.ts</code>.
+        </p>
+      </header>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 10 }}>
+        {CARD_CASES.map((item) => <CardCaseView key={item.id} item={item} />)}
+      </div>
+    </section>
+  );
+}
+
 export function DebugGym() {
   return (
     <div className="dev-page" style={{ gap: 12 }}>
@@ -623,6 +759,8 @@ export function DebugGym() {
         <CasePanel typed />
         <CasePanel typed={false} />
       </div>
+      <PlotlyCurveGym />
+      <McpRedrawGym />
       <SlopeGym />
       <TemporalAxisGym />
       <TemporalValueGym />

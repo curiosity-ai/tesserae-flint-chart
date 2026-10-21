@@ -22,8 +22,12 @@ import { makeCartesianPivot } from '../../core/pivot';
 
 const isDiscrete = (type: string | undefined) => type === 'nominal' || type === 'ordinal';
 
-/** Map the shared `interpolate` property onto Plotly's `line.shape`. */
-function lineShape(interpolate: unknown): 'linear' | 'spline' | 'hv' | 'vh' | 'hvh' {
+/**
+ * Map the shared `interpolate` property onto Plotly's `line.shape`. Undefined when the chart asks for
+ * no curve, so a theme may supply one; an explicit `linear` stays straight under any theme.
+ */
+function lineShape(interpolate: unknown): 'linear' | 'spline' | 'hv' | 'vh' | 'hvh' | undefined {
+    if (interpolate == null || interpolate === '') return undefined;
     switch (interpolate) {
         case 'monotone':
         case 'basis':
@@ -98,7 +102,7 @@ export const plAreaChartDef: ChartTemplateDef = {
                 name,
                 x: xVals,
                 y: yVals,
-                line: { color, shape },
+                line: { color, ...(shape ? { shape } : {}) },
                 fillcolor: fillColor(color, opacity),
             };
             if (colorField && stacked) {

@@ -13,10 +13,11 @@ export async function mount(el, spec, rows) {
     showRows(rows.filter((r) => games.includes(r.game)));
   });
 
-  // picker -> chart: write a point tuple into the selection's internal store
+  // picker -> chart: write a tuple into the selection's store
   gamePicker(rows, async (game) => {
     const fields = [{ type: 'E', field: 'game' }];
-    const tuples = game ? [{ unit: UNIT, fields, values: [game] }] : [];
+    const tuple = { unit: UNIT, fields, values: [game] };
+    const tuples = game ? [tuple] : [];
     const change = changeset().remove(() => true).insert(tuples);
     await view.change('pick_store', change).runAsync();
   });

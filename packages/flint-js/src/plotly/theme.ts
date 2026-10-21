@@ -1606,8 +1606,9 @@ function applyMarks(figure: any, d: DesignDecisions, table: any[], say: ReportDe
                 ? m.areaEdge?.width ?? Math.min(1, m.strokeWidth)
                 : radarEdge ? Math.min(2.5, m.strokeWidth) : m.strokeWidth;
             trace.line = { ...(trace.line ?? {}), width };
-            if (m.interpolate && !trace._preserveLineShape
-                && (!trace.line.shape || trace.line.shape === 'linear')) {
+            // Only a shape the chart left unset: a template sets one when the chart asked for a curve,
+            // `linear` included, and that choice outranks the house's.
+            if (m.interpolate && !trace._preserveLineShape && !trace.line.shape) {
                 const shape = plotlyLineShape(m.interpolate);
                 if (shape) trace.line.shape = shape;
                 else say('marks.line.interpolate', 'interpolate-unsupported', `\`${m.interpolate}\` has no Plotly line shape — left straight`);

@@ -10,11 +10,9 @@
 
 | 工具 | 用途 |
 |------|------|
-| `create_chart` | 构建一张图表，返回图表报告及其 id；此时尚未绘制。 |
-| `create_board` | 在同一标题下构建由多张图表组成的看板；此时尚未绘制。 |
-| `update_chart`、`add_chart`、`remove_chart`、`update_board` | 按 id 修改图表或看板。 |
-| `show` | 打开一张卡片，实时绘制图表或看板，并提供图表选项。客户端支持 MCP Apps 时优先使用。 |
-| `validate_chart` | 检查 Flint 输入，返回警告、错误和计算后的图表尺寸。 |
+| `validate_chart` | 不绘制，只检查图表规范，返回报告、警告、错误和计算后的图表尺寸。 |
+| `validate_board` | 不绘制，只检查同一标题下由多张图表组成的看板。 |
+| `show` | 打开一张卡片，实时绘制传入的图表或看板规范，并提供图表选项。客户端支持 MCP Apps 时优先使用。服务器在调用之间不保存任何内容。 |
 | `render_chart` | 渲染静态 PNG 或 SVG。客户端不支持 MCP Apps，或需要导出图片时使用。 |
 | `compile_chart` | 生成可供 Vega-Lite、ECharts 或 Chart.js 直接使用的 JSON 规范。 |
 | `list_chart_types` | 列出支持的图表类型和编码通道。 |
@@ -187,7 +185,7 @@ npx -y flint-chart-mcp --backends vegalite,echarts
 FLINT_MCP_BACKENDS=vegalite,echarts npx -y flint-chart-mcp
 ```
 
-客户端支持 MCP Apps 时，先用 `create_chart` 构建图表，再用 `show` 查看和调整。需要静态图片时使用 `render_chart`。需要在其他渲染器或编辑器中继续使用时，通过 `compile_chart` 生成对应的 JSON 规范。
+客户端支持 MCP Apps 时，先用 `validate_chart` 检查图表，再用 `show` 查看和调整。需要静态图片时使用 `render_chart`。需要在其他渲染器或编辑器中继续使用时，通过 `compile_chart` 生成对应的 JSON 规范。
 
 ## 验证配置
 
@@ -204,7 +202,7 @@ Then call list_chart_types for the vegalite backend and tell me whether Flint is
 Use Flint MCP to create a bar chart from these rows:
 [{"region":"North","revenue":120},{"region":"South","revenue":90}]
 Use region as Category and revenue as Quantity.
-Build it with create_chart and open it with show if this client supports MCP Apps; otherwise render an SVG.
+Check it with validate_chart and open it with show if this client supports MCP Apps; otherwise render an SVG.
 ```
 
 如果 `list_chart_types` 可用，但无法读取本地文件，请检查文件路径以及是否设置了 `--disable-file-reference`。如果 `show` 不可用，客户端可能不支持 MCP Apps；请改用 `render_chart`。

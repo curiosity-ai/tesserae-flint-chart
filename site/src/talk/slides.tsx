@@ -16,8 +16,8 @@ import {
   penguins, picked, withData, type FlintState,
 } from './data';
 import {
-  Chart, Code, Demo, FitTable, Stable, MINIMAPS, Minimap, Sketch, VegaLite, fullRows, lineDiff, plainRows, specText, stepRows, textRows,
-  type CodeRow,
+  Chart, Code, Demo, FitTable, Stable, MINIMAPS, Minimap, Sketch, VegaLite, fullLayout, lineDiff, plainLayout, specLayout, stepLayout, textRows,
+  type CodeRow, type CodeSource,
 } from './parts';
 import glue from './specs/vl-final-glue.txt?raw';
 
@@ -39,7 +39,7 @@ const Cell = ({ caption, children, framed }: { caption?: string; children: React
 );
 
 /** One step of the traditional way: the code and chart before, then the code and chart after. */
-const Step = ({ before, beforeSpec, after, afterSpec, note }: { before: CodeRow[]; beforeSpec: unknown; after: CodeRow[]; afterSpec: unknown; note?: ReactNode }) => (<>
+const Step = ({ before, beforeSpec, after, afterSpec, note }: { before: CodeSource; beforeSpec: unknown; after: CodeSource; afterSpec: unknown; note?: ReactNode }) => (<>
   <div className="talk-body talk-step">
     <div className="talk-col"><Code rows={before} tone="vl" /><VegaLite spec={beforeSpec} /></div>
     <div className="talk-arrow">→</div>
@@ -50,11 +50,11 @@ const Step = ({ before, beforeSpec, after, afterSpec, note }: { before: CodeRow[
 
 // Each step's code: the new spec with what changed in red. The next slide starts from it, in black.
 const ROWS = {
-  raw: stepRows(STEPS.raw),
-  parse: stepRows(STEPS.parse, STEPS.raw),
-  layout: stepRows(STEPS.layout, STEPS.parse),
-  theme: stepRows(STEPS.theme, STEPS.layout, 72),
-  final: stepRows(STEPS.final, STEPS.theme, 72),
+  raw: stepLayout(STEPS.raw),
+  parse: stepLayout(STEPS.parse, STEPS.raw),
+  layout: stepLayout(STEPS.layout, STEPS.parse),
+  theme: stepLayout(STEPS.theme, STEPS.layout),
+  final: stepLayout(STEPS.final, STEPS.theme),
 };
 const DIFF = {
   parse: lineDiff(STEPS.raw, STEPS.parse),
@@ -116,21 +116,28 @@ const BESPOKE_ROWS: CodeRow[] = [
   { text: '  eventSource: lassoTrigger("contain"),', hot: true },
   { text: '  affordances: { plot: { cursor: "draw" } },' },
   { text: '  handle(event) {', hot: true },
-  { text: '    // the stroke arrives as points in the data, not pixels', gap: true },
-  { text: '    const guess = extendPath(drawn, event.geometry.domain.points);' },
+  { text: '    // the stroke arrives in data units, not pixels', gap: true },
+  { text: '    const points = event.geometry.domain.points;' },
+  { text: '    const guess = extendPath(drawn, points);' },
   { text: '    if (isComplete(guess)) reveal();' },
-  { text: '    // answer with an update: draw the guess as an overlay', gap: true },
-  { text: '    return { ops: [{ op: "set-overlay", name: "guess", value: guess }] };', hot: true },
+  { text: '    // answer with an update: an overlay', gap: true },
+  { text: '    return { ops: [', hot: true },
+  { text: '      { op: "set-overlay",', hot: true },
+  { text: '        name: "guess", value: guess },', hot: true },
+  { text: '    ] };', hot: true },
   { text: '  },' },
   { text: '};' },
   { text: '' },
-  { text: '<FlintChart spec={coalShare} interactions={[draw, reveal]} />' },
+  { text: '<FlintChart spec={coalShare}' },
+  { text: '  interactions={[draw, reveal]} />' },
 ];
 
 /** The World Cup demo's own wiring, condensed: the chart says what was clicked, the page does the rest. */
 const APP_ROWS: CodeRow[] = [
   { text: 'const spec = {' },
-  { text: '  data, semantic_types: { Team: "Category", Goals: "Count" },' },
+  { text: '  data,' },
+  { text: '  semantic_types: {' },
+  { text: '    Team: "Category", Goals: "Count" },' },
   { text: '  chart_spec: { chartType: "Bar Chart",' },
   { text: '    encodings: { x: "Goals", y: "Team" } },' },
   { text: '  interaction_spec: { interactions: [' },
@@ -140,7 +147,7 @@ const APP_ROWS: CodeRow[] = [
   { text: '' },
   { text: '<FlintChart', hot: true },
   { text: '  spec={spec}', hot: true },
-  { text: '  onChange={(change) => setTeam(pinnedTeam(change))}', hot: true },
+  { text: '  onChange={(c) => setTeam(pinnedTeam(c))}', hot: true },
   { text: '/>', hot: true },
   { text: '<ScorerList team={team} />' },
 ];
@@ -158,7 +165,7 @@ const SEMANTIC_TYPES: [string, string][] = [
 
 /** The parts of the real "economist" preset that the theme slides talk about. */
 const ECON = (THEME_PRESETS as Record<string, { spec: Record<string, any> }>).economist.spec;
-const ECONOMIST_ROWS: CodeRow[] = specText({
+const ECONOMIST_ROWS = specLayout({
   id: ECON.id,
   ink: {
     series: {
@@ -172,12 +179,13 @@ const ECONOMIST_ROWS: CodeRow[] = specText({
     axis: { measure: { line: ECON.structure.axis.measure.line, placement: ECON.structure.axis.measure.placement } },
     grid: { category: ECON.structure.grid.category, zero: ECON.structure.grid.zero },
   },
-}, 84).split('\n').map((text) => ({ text }));
+});
 
 const INTERACTION_ROWS: CodeRow[] = [
   { text: '"interaction_spec": {' },
   { text: '  "interactions": [' },
-  { text: '    { "type": "click-group-focus", "options": { "groupBy": "game" } }', hot: true },
+  { text: '    { "type": "click-group-focus",', hot: true },
+  { text: '      "options": { "groupBy": "game" } }', hot: true },
   { text: '  ]' },
   { text: '}' },
   { text: '' },
@@ -187,8 +195,10 @@ const INTERACTION_ROWS: CodeRow[] = [
   { text: '' },
   { text: '// the update it can send back', gap: true },
   { text: '{ "ops": [' },
-  { text: '  { "op": "set-style", "targets": [target], "value": { "state": "emphasized" } },', hot: true },
-  { text: '  { "op": "set-annotation", "target": target, "value": { "text": "Launch month" } }', hot: true },
+  { text: '  { "op": "set-style", "targets": [target],', hot: true },
+  { text: '    "value": { "state": "emphasized" } },', hot: true },
+  { text: '  { "op": "set-annotation", "target": target,', hot: true },
+  { text: '    "value": { "text": "Launch month" } }', hot: true },
   { text: '] }' },
 ];
 const TYPES_COMPILED = typesCompiled();
@@ -209,7 +219,7 @@ const UPDATE_SLIDES: SlideDef[] = UPDATES.reduce<{ state: FlintState; slides: Sl
       <div className="talk-body">
         <div className="talk-col" style={{ flex: '0.8 1 0', gap: 16 }}>
           <p className="talk-task talk-task-sm">"{u.prompt}"</p>
-          <Code rows={fullRows(shown, prev, FLINT_W)} />
+          <Code rows={fullLayout(shown, prev)} />
         </div>
         <div className="talk-col" style={{ flex: '1.2 1 0' }}>
           <Chart spec={flintInput(next)} />
@@ -268,7 +278,7 @@ export const SLIDES: SlideDef[] = [
     id: 'ideal', render: () => (<>
       <h2>Ideally, a chart is a few lines that are easy to change</h2>
       <div className="talk-body">
-        <div className="talk-col"><Code rows={stepRows(CARS.cars)} max={26} tone="vl" /></div>
+        <div className="talk-col"><Code rows={stepLayout(CARS.cars)} max={26} tone="vl" /></div>
         <div className="talk-col"><VegaLite spec={VL.cars} /></div>
       </div>
     </>),
@@ -277,7 +287,7 @@ export const SLIDES: SlideDef[] = [
     id: 'ideal-bar', render: () => (<>
       <h2>Switching to a bar chart is one small edit</h2>
       <div className="talk-body">
-        <div className="talk-col"><Code rows={fullRows(CARS.carsBar, CARS.cars)} max={26} tone="vl" /></div>
+        <div className="talk-col"><Code rows={fullLayout(CARS.carsBar, CARS.cars)} max={26} tone="vl" /></div>
         <div className="talk-col"><VegaLite spec={VL.carsBar} /></div>
       </div>
     </>),
@@ -313,7 +323,7 @@ export const SLIDES: SlideDef[] = [
     id: 'attempt-2', render: () => (<>
       <h2>Attempt two: five years of months need a new layout</h2>
       <Step
-        before={plainRows(ROWS.parse)} beforeSpec={withData(STEPS.parse)}
+        before={plainLayout(ROWS.parse)} beforeSpec={withData(STEPS.parse)}
         after={ROWS.layout} afterSpec={withData(STEPS.layout)}
         note={<>Sixty months crowd the axis with Jan to Dec five times over. We widen the chart, label each year once, give long game names room, and move the legend to the top. That adds {DIFF.layout.plus} lines and changes {DIFF.layout.minus}.</>}
       />
@@ -323,7 +333,7 @@ export const SLIDES: SlideDef[] = [
     id: 'theme-vl', render: () => (<>
       <h2>Making it look like The Economist is mostly new work</h2>
       <Step
-        before={plainRows(ROWS.layout)} beforeSpec={withData(STEPS.layout)}
+        before={plainLayout(ROWS.layout)} beforeSpec={withData(STEPS.layout)}
         after={ROWS.theme} afterSpec={withData(STEPS.theme)}
         note={<>Fonts and axes go into the config, the house colours into the encoding, and the red tab, headline, and source line become extra views placed by hand. The spec grows by {DIFF.theme.plus} lines.</>}
       />
@@ -333,7 +343,7 @@ export const SLIDES: SlideDef[] = [
     id: 'interaction-vl', render: () => (<>
       <h2>Then clicking a game should highlight its row</h2>
       <Step
-        before={plainRows(ROWS.theme)} beforeSpec={withData(STEPS.theme)}
+        before={plainLayout(ROWS.theme)} beforeSpec={withData(STEPS.theme)}
         after={ROWS.final} afterSpec={picked(STEPS.final, PICKED_GAME)}
         note={<>Selection parameters and conditional styles are woven into the opacity, the stroke, and the axis labels, adding {DIFF.final.plus} lines across the spec.</>}
       />
@@ -430,7 +440,7 @@ export const SLIDES: SlideDef[] = [
     id: 'flint-version', render: () => (<>
       <h2>The same chart, written in Flint</h2>
       <div className="talk-body">
-        <div className="talk-col"><Code rows={stepRows(flintShown(FLINT_BASE), undefined, FLINT_W)} /></div>
+        <div className="talk-col"><Code rows={stepLayout(flintShown(FLINT_BASE))} /></div>
         <div className="talk-col">
           <Chart spec={flintInput(FLINT_BASE)} />
           <p className="talk-caption">A few lines on the raw data, with the same look. Click a game to try it.</p>
@@ -453,7 +463,7 @@ export const SLIDES: SlideDef[] = [
     id: 'a-what', render: () => (<>
       <h2>Say what each field means, and the compiler does the rest</h2>
       <div className="talk-body">
-        <div className="talk-col" style={{ flex: '0.75 1 0' }}><Code rows={specText(TYPES_FLINT, 46).split('\n').map((text) => ({ text, hot: /YearMonth|Category|Profit|semantic_types/.test(text) }))} /></div>
+        <div className="talk-col" style={{ flex: '0.75 1 0' }}><Code rows={specLayout(TYPES_FLINT, /YearMonth|Category|Profit|semantic_types/)} /></div>
         <div className="talk-col" style={{ flex: '1.25 1 0' }}><div className="talk-fit"><Sketch name="typesTree" /></div></div>
       </div>
     </>),
@@ -464,7 +474,7 @@ export const SLIDES: SlideDef[] = [
       <h2>And this is what the compiler wrote in Vega-Lite</h2>
       <div className="talk-body talk-step">
         <div className="talk-col" style={{ flex: '0.85 1 0' }}>
-          <Code rows={specText(TYPES_FLINT, 46).split('\n').map((text) => ({ text, hot: /YearMonth|Category|Profit|semantic_types/.test(text) }))} />
+          <Code rows={specLayout(TYPES_FLINT, /YearMonth|Category|Profit|semantic_types/)} />
           <p className="talk-caption">The Flint spec, on the raw rows.</p>
         </div>
         <div className="talk-arrow">→</div>
@@ -667,7 +677,7 @@ export const SLIDES: SlideDef[] = [
       <div className="talk-body">
         <div className="talk-col" style={{ flex: '0.85 1 0', gap: 16 }}>
           <p className="talk-task talk-task-sm">"Create a theme inspired by a Disneyland day out: candy colors, rounded shapes, and a playful font."</p>
-          <Code rows={specText({ theme_spec: FUN_THEME }, 60).split('\n').map((text) => ({ text }))} max={18} />
+          <Code rows={specLayout({ theme_spec: FUN_THEME })} max={18} />
         </div>
         <div className="talk-grid" style={{ flex: '1.15 1 0', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gridTemplateRows: '1fr 1fr' }}>
           <Cell><Chart spec={lineByType({ theme_spec: FUN_THEME } as Partial<ChartAssemblyInput>)} /></Cell>

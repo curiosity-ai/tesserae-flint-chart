@@ -134,7 +134,7 @@ const BOARD_WIDTH = 760;
 
 /** A board laid out at `BOARD_WIDTH` and zoomed to the chat's width, so it keeps its two columns. */
 function BoardCard({ board, editing, onContext }: { board: Board; editing?: boolean; onContext: (text: string) => void }) {
-  const app = useMockBoardApp(board, onContext);
+  const app = useMockBoardApp(onContext);
   const ref = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(1);
   // The card has no prop for layout mode, so the story opens it with the card's own button.

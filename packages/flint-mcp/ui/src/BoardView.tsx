@@ -4,9 +4,9 @@
 /**
  * The board card: several charts under one headline.
  *
- * Each show call opens a new card with the board's current version; a card
- * keeps the version it was handed. The reader arranges and restyles the newest card in
- * place; the server keeps nothing the reader changes on an earlier card. Links
+ * Each show call opens a new card with the board it was given; nothing is kept on the server.
+ * The reader arranges and restyles the card in place, and the card says what changed in the
+ * context it sends, as the fields to pass to the next show to keep it. Links
  * turn a reader's selection on one chart into an emphasis layer on the others,
  * and the card sends one model context that covers every chart.
  */
@@ -44,7 +44,6 @@ import { boardPng } from './board-export';
 import { SelectionChips, chipText, impliedParts, partText } from './selection-chips';
 import { ViewSwitch, useCellViews, useChartTable, type CellView } from './chart-table-view';
 import { ActionButton, ThemeControl } from './controls';
-import { STANDING_NOTE, useStanding } from './standing';
 import { LINK_LAYER, conditionUpdates, gestureParts, shownFields, type ChartLink, type LinkCondition, type LinkSpec } from 'flint-chart/interactive';
 
 export interface BoardChart {
@@ -64,8 +63,6 @@ export interface Board {
   theme_spec?: ChartAssemblyInput['theme_spec'];
   columns?: number;
   grid?: GridItem[];
-  reader_theme?: { theme: ChartAssemblyInput['theme_spec'] | null };
-  version: number;
   charts: BoardChart[];
   link_spec?: LinkSpec;
   linked?: Record<string, ChartLink>;
@@ -504,8 +501,10 @@ export function BoardView({ app, initial, hostContext }: { app: App; initial: Bo
   const [board, setBoard] = useState(initial);
   // The board's one selection, from the chart the reader selected on last, with the layers that hold it there.
   // The board's one condition, and the chart each part came from, which names its values.
-  // A theme picked in the bar shows at once; the board the server returns then carries it.
-  const [pendingTheme, setPendingTheme] = useState<{ theme: ChartAssemblyInput['theme_spec'] | null } | 'reset' | null>(null);
+  // The theme the reader picked in the bar for every chart; `theme` null is Flint's default.
+  const [readerTheme, setReaderTheme] = useState<{ theme: ChartAssemblyInput['theme_spec'] | null } | null>(null);
+  const readerThemeRef = useRef(readerTheme);
+  readerThemeRef.current = readerTheme;
   const [exportStatus, setExportStatus] = useState<'idle' | 'working' | 'copied' | 'downloaded' | 'error'>('idle');
   // The board's one condition, the chart each part came from, which names its values, and the parts
   // another part of the same selection implies (a country's region), applied but not shown.
@@ -532,25 +531,6 @@ export function BoardView({ app, initial, hostContext }: { app: App; initial: Bo
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => setBoard(initial), [initial]);
-
-  const [standing, setStanding] = useStanding(app, initial, setBoard);
-
-  /** Saves a reader change on the board; false when the server did not keep it. */
-  const writeBoard = useCallback(async (name: 'set_board_theme' | 'set_board_layout', args: Record<string, unknown>) => {
-    const current = boardRef.current;
-    try {
-      const result = await app.callServerTool({ name, arguments: { id: current.id, version: current.version, ...args } });
-      const { board: saved, version } = (result.structuredContent ?? {}) as { board?: Board; version?: number };
-      if (!result.isError && saved) {
-        setBoard(saved);
-        return true;
-      }
-      if (version !== undefined && version > current.version) setStanding('passed');
-    } catch {
-      // Not kept; the caller says so.
-    }
-    return false;
-  }, [app]);
 
   const clearCondition = useCallback(() => {
     setCondition((current) => (Object.keys(current.parts).length === 0 ? current : EMPTY_CONDITION));
@@ -642,7 +622,7 @@ export function BoardView({ app, initial, hostContext }: { app: App; initial: Bo
   const sendContext = useCallback(() => {
     const current = boardRef.current;
     const lines = [
-      `Board ${current.id} version ${current.version}${current.title ? ` "${current.title}"` : ''}: ${current.charts.length} charts, as the reader sees them now. Change it with add_chart, update_chart, remove_chart and update_board, then show it again with show.`,
+      `Board${current.title ? ` "${current.title}"` : ''}: ${current.charts.length} charts, as the reader sees them now. To change it, change the board spec and call show again.`,
     ];
     for (const chart of chartsRef.current) {
       const state = states.current.get(chart.id);
@@ -678,15 +658,23 @@ export function BoardView({ app, initial, hostContext }: { app: App; initial: Bo
         lines.push(`- The board is narrowed to ${said.join(' and ')}.`, `- Each chart shows it on the fields its marks carry: ${shown.join('; ')}.`);
       }
     }
-    if (current.reader_theme) lines.push('', `The reader picked the theme ${themeName(current.reader_theme.theme ?? undefined)} for every chart, over ${themeName(current.theme_spec)}.`);
-    if (current.grid) lines.push('', 'Layout, as the reader arranged it on a 12-column grid:', ...gridLines(current.grid));
+    const picked = readerThemeRef.current;
+    if (picked) {
+      lines.push('', picked.theme === null
+        ? 'The reader picked Flint\'s default theme for every chart. To keep it in the next show, leave theme_spec out of the board and the charts.'
+        : `The reader picked the theme ${themeName(picked.theme)} for every chart. To keep it in the next show, pass theme_spec: ${JSON.stringify(picked.theme)} on the board and leave it out of the charts.`);
+    }
+    if (current.grid) {
+      lines.push('', 'Layout, as the reader arranged it on a 12-column grid:', ...gridLines(current.grid),
+        `To keep it in the next show, pass grid: ${JSON.stringify(current.grid)} on the board.`);
+    }
     const text = lines.join('\n');
     if (text === lastContext.current) return;
     lastContext.current = text;
     void app.updateModelContext({ content: [{ type: 'text', text }] })
       .catch((err) => console.warn('The host declined the board context', err));
   }, [app]);
-  useEffect(() => sendContext(), [board, charts, condition, sendContext]);
+  useEffect(() => sendContext(), [board, charts, condition, readerTheme, sendContext]);
   const handleTable = useCallback((id: string, table: ChartTable | null) => {
     if (table) tables.current.set(id, table);
     else tables.current.delete(id);
@@ -728,22 +716,15 @@ export function BoardView({ app, initial, hostContext }: { app: App; initial: Bo
     const layoutCharts = charts.map((chart) => ({ id: chart.id, chartType: chart.input.chart_spec.chartType, layout: chart.layout }));
     return boardRows(layoutCharts, boardColumns(layoutCharts, board.columns), boardWidth ?? undefined);
   }, [charts, board.columns, boardWidth]);
-  const readerTheme = pendingTheme === 'reset' ? undefined : pendingTheme ?? board.reader_theme;
   const theme = readerTheme ? readerTheme.theme ?? undefined : board.theme_spec;
-  const drawInputs = useDrawInputs(charts, theme, readerTheme !== undefined);
-  const pickTheme = useCallback(async (next: ChartAssemblyInput['theme_spec']) => {
+  const drawInputs = useDrawInputs(charts, theme, readerTheme !== null);
+  const pickTheme = useCallback((next: ChartAssemblyInput['theme_spec']) => {
     const reset = JSON.stringify(next ?? null) === JSON.stringify(boardRef.current.theme_spec ?? null);
-    setPendingTheme(reset ? 'reset' : { theme: next ?? null });
-    if (await writeBoard('set_board_theme', reset ? { reset: true } : { theme: next ?? null })) {
-      setPendingTheme(null);
-      return;
-    }
-    // The server did not keep it: the card still shows it.
-    setNotice('The theme could not be saved on the board; it shows here until the card reloads.');
-  }, [writeBoard]);
+    setReaderTheme(reset ? null : { theme: next ?? null });
+  }, []);
   // The frame is drawn in the board's theme, the reader's pick, or else the one theme the charts share.
   const frameTheme = useMemo(
-    () => (readerTheme !== undefined || theme !== undefined ? theme : sharedChartTheme(charts)),
+    () => (readerTheme !== null || theme !== undefined ? theme : sharedChartTheme(charts)),
     [readerTheme, theme, charts],
   );
   const style = useMemo(() => boardStyle(frameTheme), [frameTheme]);
@@ -811,10 +792,13 @@ export function BoardView({ app, initial, hostContext }: { app: App; initial: Bo
     setDraft(board.grid ? board.grid.map((item) => ({ ...item })) : gridFromRows());
   }, [board.grid, gridFromRows]);
 
-  const save = useCallback(async (next: GridItem[] | null) => {
-    if (!(await writeBoard('set_board_layout', { grid: next }))) setNotice('The arrangement was not kept.');
+  const save = useCallback((next: GridItem[] | null) => {
+    setBoard((current) => {
+      const { grid: _grid, ...rest } = current;
+      return next ? { ...rest, grid: next } : rest;
+    });
     setDraft(null);
-  }, [writeBoard]);
+  }, []);
 
   const gesture = useRef<{ kind: GridGesture; id: string; x: number; y: number; start: GridItem[] } | null>(null);
   const onGesture = useCallback((kind: GridGesture, id: string, event: ReactPointerEvent<HTMLElement>) => {
@@ -991,7 +975,6 @@ export function BoardView({ app, initial, hostContext }: { app: App; initial: Bo
         {topRules.map((rule, at) => <div key={at} className="board-rule" style={ruleStyle(rule, style.ink)} />)}
         {editing && <p className="board-hint">Drag a chart by its handle at the top right: dropped on a chart in its row the two swap; dropped on another row it is inserted there and the rest move down (Shift does the other). Drag the right or bottom edge, or a bottom corner, to resize.</p>}
         {notice && <p className="board-status">{notice}</p>}
-        {standing !== 'newest' && <p className="board-status">{STANDING_NOTE[standing]}</p>}
       </header>
       {charts.length === 0 ? (
         <div className="board-empty">No charts on this board yet.</div>
@@ -1070,18 +1053,18 @@ export function BoardView({ app, initial, hostContext }: { app: App; initial: Bo
             {editing ? (
               <span className="bar-actions">
                 <button type="button" className="board-tool" onClick={() => setDraft(null)}>Cancel</button>
-                <button type="button" className="board-tool board-tool-primary" onClick={() => void save(draft)}>Done</button>
+                <button type="button" className="board-tool board-tool-primary" onClick={() => save(draft)}>Done</button>
               </span>
             ) : (
               <span className="bar-actions">
-                <ActionButton label="Edit layout" disabled={standing !== 'newest'} onClick={startEditing}>
+                <ActionButton label="Edit layout" onClick={startEditing}>
                   <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true">
                     <rect x="1.5" y="1.5" width="5.5" height="5.5" rx="1" fill="none" stroke="currentColor" strokeWidth="1.3" />
                     <rect x="9" y="1.5" width="5.5" height="5.5" rx="1" fill="none" stroke="currentColor" strokeWidth="1.3" />
                     <rect x="1.5" y="9" width="13" height="5.5" rx="1" fill="none" stroke="currentColor" strokeWidth="1.3" />
                   </svg>
                 </ActionButton>
-                <ActionButton label="Reset layout" className="bar-reset" disabled={standing !== 'newest' || !board.grid} onClick={() => void save(null)}>
+                <ActionButton label="Reset layout" className="bar-reset" disabled={!board.grid} onClick={() => save(null)}>
                   <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true">
                     <path d="M4 5.5H1.5V3" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
                     <path d="M2 5.5A6 6 0 1 1 2.8 11" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />

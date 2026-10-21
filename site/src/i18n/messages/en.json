@@ -613,8 +613,8 @@
     "exp": {
       "simple": {
         "chartHeading": "An interactive chart, in a theme",
-        "chartAsk": "Show me how global temperatures have changed since 1880, in a newspaper style. Let me brush across the years.",
-        "chartReply": "Here's a live chart in a newspaper style. Drag across the years to select a period.",
+        "chartAsk": "Show me how coffee drinking has changed by country since 2005, in a newspaper style. Let me hover to compare.",
+        "chartReply": "Here's a live chart in a newspaper style. Hover any year to read every country, or click the legend to hide one.",
         "boardHeading": "A dashboard, in a theme",
         "boardAsk": "Build a dashboard from the Gapminder data in the Economist theme, with the charts linked by continent.",
         "boardReply": "Here's a board of four linked charts in the Economist theme. Click a continent in any of them to see it everywhere."
@@ -708,11 +708,11 @@
       },
       "board": {
         "title": "Boards",
-        "body": "Build, change and show dashboards of linked charts."
+        "body": "Check and show dashboards of linked charts."
       },
       "static": {
         "title": "Static output",
-        "body": "Return a PNG or SVG, a backend spec, or a validation report."
+        "body": "Return a PNG or SVG, or a backend spec."
       },
       "skills": {
         "title": "Discovery and skills",

@@ -304,6 +304,11 @@ export const TYPES_FLINT = {
 
 type Line = { text: string; hot?: boolean; gap?: boolean };
 const j = (v: unknown) => JSON.stringify(v).split('","').join('", "').split('":').join('": ').split(',"').join(', "');
+/** A small object on one line, spaced inside its braces: `{ "type": "rect", "width": 7 }`. */
+const spaced = (v: unknown) => {
+  const text = j(v);
+  return text.startsWith('{') && text !== '{}' ? `{ ${text.slice(1, -1)} }` : text;
+};
 /**
  * The parts of the compiled Vega-Lite that the three types decided, taken from the real output, with a
  * comment naming the type behind each.
@@ -313,22 +318,29 @@ export function typesCompiled(): Line[] {
   const { x, y, color } = vl.encoding;
   const ticks: string[] = x.axis?.values ?? [];
   const row = vl.data?.values?.[0] ?? {};
+  // Broken where an author would break it, so no line wraps inside a pair on the slide.
   return [
     { text: '{' },
-    { text: '  // YearMonth: 202101 is read as a month, on a time axis', gap: true },
-    { text: `  "data": { "values": [${j({ period: row.period, game: row.game, newUsers_sum: row.newUsers_sum })}, …] },`, hot: true },
+    { text: '  // YearMonth: 202101 is read as a month', gap: true },
+    { text: `  "data": { "values": [{ "period": ${j(row.period)}, … }, …] },`, hot: true },
     { text: '  "encoding": {' },
     { text: `    "x": { "field": "period", "type": ${j(x.type)},`, hot: true },
     { text: `      "scale": { "type": ${j(x.scale?.type)} },`, hot: true },
-    { text: `      "axis": { "values": [${ticks.slice(0, 2).map((t) => j(t.slice(0, 10))).join(', ')}, …], "labelExpr": "… %Y or %B" } },`, hot: true },
-    { text: '    // Category: the games keep the order they come in', gap: true },
-    { text: `    "y": { "field": "game", "type": ${j(y.type)}, "sort": ${j(y.sort)} },`, hot: true },
-    { text: '    // Profit: it can go negative, so the colors diverge around zero', gap: true },
-    { text: `    "color": { "field": ${j(color.field)}, "type": ${j(color.type)},`, hot: true },
-    { text: `      "scale": { "scheme": ${j(color.scale?.scheme)}, "domainMid": ${j(color.scale?.domainMid)}, "domain": ${j(color.scale?.domain)} } }`, hot: true },
+    { text: '      "axis": {', hot: true },
+    { text: `        "values": [${ticks.slice(0, 2).map((t) => j(t.slice(0, 10))).join(', ')}, …],`, hot: true },
+    { text: '        "labelExpr": "… %Y or %B" } },', hot: true },
+    { text: '    // Category: games keep the order they come in', gap: true },
+    { text: `    "y": { "field": "game", "type": ${j(y.type)},`, hot: true },
+    { text: `      "sort": ${j(y.sort)} },`, hot: true },
+    { text: '    // Profit: it can go negative, so colors diverge', gap: true },
+    { text: `    "color": { "field": ${j(color.field)},`, hot: true },
+    { text: `      "type": ${j(color.type)},`, hot: true },
+    { text: `      "scale": { "scheme": ${j(color.scale?.scheme)}, "domainMid": ${j(color.scale?.domainMid)},`, hot: true },
+    { text: `        "domain": ${j(color.scale?.domain).replace(',', ', ')} } }`, hot: true },
     { text: '  },' },
-    { text: '  // The layout engine: a cell size for 60 months and 8 games', gap: true },
-    { text: `  "mark": ${j(vl.mark)}, "height": ${j(vl.height)}`, hot: true },
+    { text: '  // Layout: a cell size for 60 months and 8 games', gap: true },
+    { text: `  "mark": ${spaced(vl.mark)},`, hot: true },
+    { text: `  "height": ${spaced(vl.height)}`, hot: true },
     { text: '}' },
   ];
 }

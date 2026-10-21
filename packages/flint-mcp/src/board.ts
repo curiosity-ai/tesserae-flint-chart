@@ -6,7 +6,7 @@ import { z } from 'zod';
 import type { ChartAssemblyInput, ChartLink, ChartUpdate, LinkSpec, ValidateResult } from 'flint-chart';
 import { drawsAsTable, validateLinks } from 'flint-chart';
 
-import { ROW_UNITS, boardColumns, boardRows, colorField, gridItemFor, gridLines, isKpi, layoutLines, sharedColorOrders, type ChartLayout, type GridItem } from './board-layout.js';
+import { ROW_UNITS, boardColumns, boardRows, colorField, gridItemFor, gridLines, gridProblem, isKpi, layoutLines, sharedColorOrders, type ChartLayout, type GridItem } from './board-layout.js';
 
 /** The characters of a chart title that fit on one line per row unit, at the card's heading size. */
 const TITLE_CHARS_PER_UNIT = 7.5;
@@ -21,6 +21,8 @@ export interface BoardChart {
   layout?: ChartLayout;
   /** The view the cell opens in; the reader's switch holds until the agent sets it again. */
   view?: ChartView;
+  /** The rows were read from a local data.url file, so they never passed through the conversation. */
+  fromFile?: true;
 }
 
 export interface Board {
@@ -37,15 +39,8 @@ export interface Board {
   theme_spec?: ChartAssemblyInput['theme_spec'];
   /** Board columns; two once the board holds two charts that are not KPI tiles. */
   columns?: number;
-  /** Where each chart sits once the reader arranged the board; the rows of `columns` and `layout` until then. */
+  /** Where each chart sits, as the reader arranged it on a card; the rows of `columns` and `layout` without it. */
   grid?: GridItem[];
-  /**
-   * The theme the reader picked for every chart, over the board's and the charts' own; `theme`
-   * null is Flint's default. Absent while the reader keeps the agent's theme.
-   */
-  reader_theme?: { theme: ChartAssemblyInput['theme_spec'] | null };
-  /** One per agent write; a card shows one version, and the reader's changes keep it. */
-  version: number;
   charts: BoardChart[];
   /** The fields the charts connect on; none when the charts stand alone. */
   link_spec?: LinkSpec;
@@ -56,7 +51,7 @@ export interface Board {
 /** A chart spec as a tool argument: its id, the chart input, and its update layers. */
 export type BoardChartArgs = AssemblyInputArgs & { id: string; updates?: ChartUpdate[]; layout?: ChartLayout; view?: ChartView };
 
-/** The board fields create_board and update_board set. */
+/** The board fields a board spec sets around its charts. */
 export type BoardFields = Pick<Board, 'title' | 'subtitle' | 'source' | 'theme_spec' | 'columns'>;
 
 export const layoutShape = z
@@ -80,10 +75,10 @@ type Validate = (input: ChartAssemblyInput, updates: ChartUpdate[] | undefined) 
 
 export function boardChartShape(assemblyInputShape: Record<string, z.ZodTypeAny>) {
   return z.object({
-    id: z.string().describe('Names the chart on the board; add_chart, update_chart, remove_chart and link_spec use it.'),
+    id: z.string().describe('Names the chart on the board; link_spec, grid and the report use it.'),
     ...assemblyInputShape,
     updates: updatesShape.updates.describe(
-      'ChartUpdate layers the chart shows: state, where interaction_spec is behaviour. update_chart replaces them.',
+      'ChartUpdate layers the chart shows: state, where interaction_spec is behaviour.',
     ),
     layout: layoutShape.optional(),
     ...viewShape,
@@ -101,45 +96,6 @@ export const linkSpecShape = z
       .describe('Per chart id: send: false keeps its selections to itself; receive: false keeps it as drawn, as an overview does.'),
   })
   .describe('How the charts on the board connect: by the fields they share. One selection holds at a time; a new one replaces the last.');
-
-/** The most boards a store keeps; creating one more drops the oldest. */
-export const BOARD_LIMIT = 200;
-
-export class BoardStore {
-  private boards = new Map<string, Board>();
-
-  create(kind: Board['kind'], fields: BoardFields = {}): Board {
-    const board: Board = { id: `${kind}-${randomBytes(8).toString('hex')}`, kind, ...fields, version: 1, charts: [] };
-    this.boards.set(board.id, board);
-    if (this.boards.size > BOARD_LIMIT) this.boards.delete(this.boards.keys().next().value!);
-    return board;
-  }
-
-  /** Takes back the board a card holds, as a server that restarted lost it; a newer board it holds stays. */
-  restore(board: Board): Board {
-    const held = this.boards.get(board.id);
-    if (held && held.version >= (board.version ?? 1)) return held;
-    const kept: Board = { ...board, kind: board.kind ?? 'board', charts: board.charts ?? [], version: board.version ?? 1 };
-    this.boards.set(kept.id, kept);
-    if (this.boards.size > BOARD_LIMIT) this.boards.delete(this.boards.keys().next().value!);
-    return kept;
-  }
-
-  get(id: string): Board {
-    const board = this.boards.get(id);
-    if (!board) {
-      throw new Error(
-        `No chart or board "${id}" on this server; it may have restarted. Call create_chart or create_board to build it again, then show.`,
-      );
-    }
-    return board;
-  }
-
-  /** Marks an agent write: the board's next version. */
-  touch(board: Board): void {
-    board.version += 1;
-  }
-}
 
 /** The chart as the model reads it before it is drawn: the same report the drawn chart sends as its context. */
 export function chartReport(input: ChartAssemblyInput, updates: readonly ChartUpdate[] | undefined, result: ValidateResult): string {
@@ -168,8 +124,10 @@ export async function prepareChart(
   validate: Validate,
   board: Pick<Board, 'theme_spec'>,
 ): Promise<{ chart?: BoardChart; outcome: ChartOutcome; errors?: string }> {
-  const { id, updates, layout, view, ...rest } = args;
+  const { id, updates, layout, view, fromFile: keptFromFile, ...rest } = args as BoardChartArgs & { fromFile?: true };
   const own = toAssemblyInput(rest as AssemblyInputArgs);
+  // An update that leaves the data alone rebuilds from rows already read, so the file origin carries over.
+  const fromFile = typeof own.data?.url === 'string' || keptFromFile === true;
   const { result, input } = await validate(withBoardTheme(own, board), updates);
   if (!result.valid) {
     const errors = result.errors.map((e) => e.message).join('; ');
@@ -177,10 +135,13 @@ export async function prepareChart(
   }
   const opensAsTable = view === 'table' && !drawsAsTable(input.chart_spec.chartType);
   const report = chartReport(input, updates, result) + (opensAsTable ? `\n${OPENS_AS_TABLE}` : '');
-  // The board's theme stays the board's: a later update_board theme reaches every chart that set none.
+  // The board's theme stays the board's, so the card's theme switch reaches every chart that set none.
   const stored = { ...input, theme_spec: own.theme_spec };
   return {
-    chart: { id, input: stored, ...(updates ? { updates } : {}), ...(layout ? { layout } : {}), ...(opensAsTable ? { view } : {}) },
+    chart: {
+      id, input: stored, ...(updates ? { updates } : {}), ...(layout ? { layout } : {}), ...(opensAsTable ? { view } : {}),
+      ...(fromFile ? { fromFile: true as const } : {}),
+    },
     outcome: { id, drawn: true, text: report },
   };
 }
@@ -200,7 +161,7 @@ function layoutCharts(board: Board) {
 export function boardLayoutLines(board: Board): string[] {
   if (board.grid) {
     return [
-      'Arranged by the reader on a 12-column grid; keep it. Passing layout, columns or order sets the rows again and drops their arrangement.',
+      'Arranged on a 12-column grid (grid), as the reader left it; keep passing it. Leave grid out to lay the charts out in rows again.',
       ...gridLines(board.grid),
     ];
   }
@@ -208,17 +169,27 @@ export function boardLayoutLines(board: Board): string[] {
   return layoutLines(boardRows(charts, boardColumns(charts, board.columns)));
 }
 
-/** A chart added to an arranged board takes a place below the rest. */
-export function placeAddedChart(board: Board, chart: BoardChart): void {
-  if (!board.grid) return;
-  board.grid = [...board.grid, gridItemFor(board.grid, { id: chart.id, chartType: chart.input.chart_spec.chartType, layout: chart.layout })];
-}
-
-/** Drops the reader's arrangement, and says so, when the agent sets the rows the board is laid out by. */
-export function dropArrangement(board: Board, why: string): string | undefined {
+/**
+ * The arrangement a board spec passes, fitted to its charts: places of charts no longer on the board
+ * are dropped and new charts take a place below the rest. An arrangement that still does not fit is
+ * dropped for the rows, and the note says why.
+ */
+export function fitGrid(board: Board): string | undefined {
   if (!board.grid) return undefined;
-  board.grid = undefined;
-  return `The reader's arrangement was dropped: ${why} sets the board's rows again.`;
+  const ids = new Set(board.charts.map((chart) => chart.id));
+  let grid = board.grid.filter((item) => ids.has(item.id));
+  for (const chart of board.charts) {
+    if (!grid.some((item) => item.id === chart.id)) {
+      grid = [...grid, gridItemFor(grid, { id: chart.id, chartType: chart.input.chart_spec.chartType, layout: chart.layout })];
+    }
+  }
+  const problem = gridProblem(grid, board.charts.map((chart) => chart.id));
+  if (problem) {
+    board.grid = undefined;
+    return `The grid was dropped for the rows: ${problem}.`;
+  }
+  board.grid = grid;
+  return undefined;
 }
 
 /** Chart types that draw one mark per row, so rows that repeat a category stack as slices. */
@@ -242,17 +213,17 @@ function stackedRepeats(input: ChartAssemblyInput): string | undefined {
   const keys = new Set(rows.map((row) => JSON.stringify(categories.map((field) => row?.[field]))));
   if (keys.size === rows.length) return undefined;
   const channel = Object.entries(encodings).find(([, value]) => fieldOf(value) === measure)?.[0] ?? 'x';
-  return `draws ${rows.length} rows as ${keys.size} ${categories.join(' × ')} groups, so each mark is a stack of slices, one per row: sum the rows first, or set encodings.${channel}.aggregate to "sum" (update_chart).`;
+  return `draws ${rows.length} rows as ${keys.size} ${categories.join(' × ')} groups, so each mark is a stack of slices, one per row: sum the rows first, or set encodings.${channel}.aggregate to "sum".`;
 }
 
 /** What the board should still fix to read well; each note says the fix. */
 export function boardReview(board: Board): string[] {
   const notes: string[] = [];
-  if (!board.title) notes.push('No board title: set title to what the board shows or is for, in words (update_board).');
+  if (!board.title) notes.push('No board title: set title to what the board shows or is for, in words.');
   if (board.title && board.title.length > 90) notes.push('The board title is long; keep it to one line and move the detail to subtitle.');
-  if (!board.subtitle && board.charts.length > 0) notes.push('No subtitle: say the data, its scope, period and units (update_board).');
+  if (!board.subtitle && board.charts.length > 0) notes.push('No subtitle: say the data, its scope, period and units.');
   const untitled = board.charts.filter((chart) => !isKpi(chart.input.chart_spec.chartType) && !chart.input.chart_spec.title).map((chart) => chart.id);
-  if (untitled.length > 0) notes.push(`No title on ${untitled.join(', ')}: each cell's heading is its chart title; name what the chart shows (update_chart).`);
+  if (untitled.length > 0) notes.push(`No title on ${untitled.join(', ')}: each chart draws its title as its heading; name what the chart shows.`);
   const charts = layoutCharts(board);
   const units = new Map(boardRows(charts, boardColumns(charts, board.columns)).flatMap((row) => row.charts.map((cell) => [cell.id, cell.units] as const)));
   const long = board.charts.flatMap((chart) => {
@@ -260,7 +231,7 @@ export function boardReview(board: Board): string[] {
     const limit = Math.round((units.get(chart.id) ?? ROW_UNITS) * TITLE_CHARS_PER_UNIT);
     return title && title.length > limit ? [`${chart.id} (${title.length} characters, about ${limit} fit)`] : [];
   });
-  if (long.length > 0) notes.push(`Chart titles that wrap at their width: ${long.join(', ')}; shorten each to one line and move detail to its subtitle (update_chart).`);
+  if (long.length > 0) notes.push(`Chart titles that wrap at their width: ${long.join(', ')}; shorten each to one line and move detail to its subtitle.`);
   for (const chart of board.charts) {
     const stacked = stackedRepeats(chart.input);
     if (stacked) notes.push(`${chart.id} ${stacked}`);
@@ -270,7 +241,7 @@ export function boardReview(board: Board): string[] {
   if (board.charts.length - kpis > 8) notes.push(`${board.charts.length - kpis} charts: a board reads best with up to six; split it or remove the least used.`);
   const themes = new Set(board.charts.map((chart) => JSON.stringify(chart.input.theme_spec ?? null)).filter((theme) => theme !== 'null'));
   if (themes.size > 1 || (themes.size === 1 && board.theme_spec !== undefined)) {
-    notes.push('Charts set their own themes; set theme_spec once on the board (update_board) and drop it from the charts so the board reads as one piece.');
+    notes.push('Charts set their own themes; set theme_spec once on the board and drop it from the charts so the board reads as one piece.');
   }
   for (const [field, values] of sharedColorOrders(board.charts.map((chart) => chart.input))) {
     const users = board.charts.filter((chart) => colorField(chart.input) === field).map((chart) => chart.id);
@@ -289,28 +260,23 @@ export function themeName(theme: ChartAssemblyInput['theme_spec'] | null): strin
 
 /** What the model reads once a chart or board is on screen. */
 export function shownText(board: Board): string {
-  return `${board.kind === 'chart' ? 'Chart' : 'Board'} ${board.id} version ${board.version} is on screen in a new card; earlier cards keep the versions they showed. What the reader does on it reaches you with their next message.`;
+  return `The ${board.kind === 'chart' ? 'chart' : 'board'} is on screen in a new card. What the reader does on it reaches you with their next message. ` +
+    'To change it, change the spec and call show again: a new card shows it, and earlier cards stay as they were.';
 }
 
-/** A chart or board as the model reads it after a write. */
-export function viewReport(board: Board, outcomes: readonly ChartOutcome[], notes: readonly string[] = []): string {
-  if (board.kind === 'board') return boardReport(board, outcomes, notes);
-  return [
-    `Chart ${board.id}, version ${board.version}, not on screen yet: fix what this report asks with update_chart (never a new create_chart), then call show once.`,
-    ...notes,
-    ...outcomes.map((outcome) => outcome.text),
-  ].join('\n');
+/** A chart or board as the model reads it: the checks of validate_chart or validate_board, or of show. */
+export function viewReport(board: Board, outcomes: readonly ChartOutcome[], notes: readonly string[] = [], shown = false): string {
+  const next = shown ? shownText(board) : 'Nothing is on screen: fix what this report asks in the spec, then call show with it.';
+  if (board.kind === 'board') return boardReport(board, outcomes, notes, next);
+  return [next, ...notes, ...outcomes.map((outcome) => outcome.text)].join('\n');
 }
 
-function boardReport(board: Board, outcomes: readonly ChartOutcome[], notes: readonly string[]): string {
+function boardReport(board: Board, outcomes: readonly ChartOutcome[], notes: readonly string[], next: string): string {
   const lines = [
-    `Board ${board.id}${board.title ? ` "${board.title}"` : ''}: ${board.charts.length} chart${board.charts.length === 1 ? '' : 's'} (${board.charts.map((chart) => chart.id).join(', ') || 'none'}).`,
-    `Version ${board.version}, not on screen yet: fix what this report asks with add_chart, update_chart, remove_chart and update_board (never a new create_board), then call show once.`,
+    `Board${board.title ? ` "${board.title}"` : ''}: ${board.charts.length} chart${board.charts.length === 1 ? '' : 's'} (${board.charts.map((chart) => chart.id).join(', ') || 'none'}).`,
+    next,
   ];
   if (notes.length > 0) lines.push('', ...notes);
-  if (board.reader_theme) {
-    lines.push('', `The reader picked the theme ${themeName(board.reader_theme.theme)} for every chart; keep it. Passing theme_spec on update_board replaces their pick.`);
-  }
   if (board.charts.length > 0) lines.push('', 'Layout:', ...boardLayoutLines(board));
   for (const outcome of outcomes) {
     lines.push('', `## ${outcome.id}`, outcome.text);
@@ -324,6 +290,23 @@ function boardReport(board: Board, outcomes: readonly ChartOutcome[], notes: rea
 }
 
 /** The board as the card reads it. */
+/**
+ * The largest board `show` also returns in structuredContent, in bytes of JSON. VS Code's agent
+ * sessions rebuild a card's result from content and structuredContent alone, dropping _meta, so a
+ * card drawn again finds its chart only there; but that copy also reaches the model, so only small
+ * boards ride along (about 1k tokens at most).
+ */
+export const RESULT_COPY_LIMIT = 4096;
+
+/**
+ * Whether `show` may also put the board in structuredContent: every chart's rows came inline, so they
+ * are in the conversation already, and the board is small. Rows read from a local file never are.
+ */
+export function fitsInResult(board: Board): boolean {
+  if (board.charts.some((chart) => chart.fromFile)) return false;
+  return Buffer.byteLength(JSON.stringify(board), 'utf8') <= RESULT_COPY_LIMIT;
+}
+
 export function boardSnapshot(board: Board): Board {
   return {
     ...board,
@@ -331,31 +314,48 @@ export function boardSnapshot(board: Board): Board {
     ...(board.link_spec ? { link_spec: { ...board.link_spec } } : {}),
     ...(board.linked ? { linked: { ...board.linked } } : {}),
     ...(board.grid ? { grid: board.grid.map((item) => ({ ...item })) } : {}),
-    ...(board.reader_theme ? { reader_theme: { ...board.reader_theme } } : {}),
   };
 }
 
-/** The chart input fields update_chart may replace, by tool argument name. */
-export const CHART_INPUT_KEYS = ['data', 'semantic_types', 'chart_spec', 'theme_spec', 'interaction_spec', 'options', 'field_display_names'] as const;
-
-/** The chart args an update_chart call leaves: the chart's current input with the given fields replaced. */
-export function mergeChartArgs(chart: BoardChart, patch: Partial<BoardChartArgs>): BoardChartArgs {
-  const base = {
-    id: chart.id,
-    ...chart.input,
-    ...(chart.updates ? { updates: chart.updates } : {}),
-    ...(chart.layout ? { layout: chart.layout } : {}),
-    ...(chart.view ? { view: chart.view } : {}),
-  } as unknown as BoardChartArgs;
-  const next: Record<string, unknown> = { ...base };
-  for (const key of CHART_INPUT_KEYS) {
-    if (patch[key] !== undefined) next[key] = patch[key];
+/**
+ * A chart or board from its spec, every chart checked, nothing kept: validate_chart, validate_board
+ * and show each build it again from the spec the agent passes. A chart with errors is left off the
+ * board, and its outcome says why.
+ */
+export async function assembleBoard(
+  spec: BoardSpec,
+  kind: Board['kind'],
+  validate: Validate,
+): Promise<{ board: Board; outcomes: ChartOutcome[]; notes: string[] }> {
+  const board: Board = {
+    id: `${kind}-${randomBytes(8).toString('hex')}`,
+    kind,
+    ...(spec.title !== undefined ? { title: spec.title } : {}),
+    ...(spec.subtitle !== undefined ? { subtitle: spec.subtitle } : {}),
+    ...(spec.source !== undefined ? { source: spec.source } : {}),
+    ...(spec.theme_spec !== undefined ? { theme_spec: spec.theme_spec } : {}),
+    ...(spec.columns !== undefined ? { columns: spec.columns } : {}),
+    ...(spec.grid ? { grid: spec.grid } : {}),
+    charts: [],
+  };
+  const outcomes: ChartOutcome[] = [];
+  for (const chartArgs of spec.charts) {
+    const { chart, outcome } = await prepareChart(chartArgs, validate, board);
+    outcomes.push(outcome);
+    if (chart) board.charts.push(chart);
   }
-  if (patch.updates !== undefined) next.updates = patch.updates;
-  if (patch.layout !== undefined) next.layout = patch.layout;
-  if (patch.view !== undefined) next.view = patch.view;
-  return next as BoardChartArgs;
+  if (spec.link_spec) board.link_spec = spec.link_spec;
+  relink(board);
+  const notes = [fitGrid(board)].filter((note): note is string => note !== undefined);
+  return { board, outcomes, notes };
 }
+
+/** A board as a tool argument: its fields, its charts, how they connect, and the reader's arrangement. */
+export type BoardSpec = BoardFields & { charts: BoardChartArgs[]; link_spec?: LinkSpec; grid?: GridItem[] };
+
+export const gridShape = z
+  .array(z.object({ id: z.string(), x: z.number(), y: z.number(), w: z.number(), h: z.number() }))
+  .describe('Where each chart sits on a 12-column grid, as the reader arranged it on a card; the card\'s context gives it. Leave it out for rows.');
 
 /** The link as the model reads it: what each chart sends, by which interaction, and receives, and what is left out. */
 function linkLines(links: Record<string, ChartLink>): string[] {

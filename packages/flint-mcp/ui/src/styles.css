@@ -52,7 +52,11 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 10px;
+  padding:
+    calc(10px + var(--inset-top, 0px))
+    calc(10px + var(--inset-right, 0px))
+    calc(10px + var(--inset-bottom, 0px))
+    calc(10px + var(--inset-left, 0px));
   align-items: stretch;
 }
 
@@ -61,19 +65,20 @@ body {
   min-width: 0;
 }
 
-/* The chart frame. Its width is measured and handed to the assembler, so the
-   SVG should already fit across; the `max-*` rules are a backstop for specs
-   that state their own size and so opt out of the preview's sizing.
+/* The chart frame. Its width is measured and the chart is laid out for it,
+   so the SVG already fits across.
 
-   Height is deliberately not fixed. A title, deck, legend and axis can take
-   145px before the plot gets any, so pinning a short frame and scaling the
-   graphic down shrinks the type below the app's own 11px chrome. The frame
-   grows to the chart instead, up to --chart-max-height.
+   Height is not fixed inline. A title, deck, legend and axis can take 145px
+   before the plot gets any, so pinning a short frame and scaling the graphic
+   down shrinks the type below the app's own 11px chrome, and a fixed tall
+   frame leaves a band around a chart its house draws short. The frame grows
+   to the chart instead, up to --chart-max-height; a chart laid out taller is
+   given that height as its box and scaled into it. In a pane the frame takes
+   the pane's height and the chart is laid out for it.
 
-   That cap is a length, not a percentage, and is repeated on the SVG below.
-   A percentage `max-height` resolves against the parent's height, and this
-   parent has none to give — so the SVG would render at full height, the frame
-   would stop at its cap, and the difference would become a scrollbar. */
+   The frame never scrolls: a scrollbar would narrow the chart it measures and
+   start a relayout loop, and a centred chart taller than a scrolling box loses
+   its top, title first. */
 .chart {
   background: var(--paper);
   padding: 6px;
@@ -86,7 +91,23 @@ body {
   margin-inline: auto;
   justify-content: center;
   align-items: center;
-  overflow: auto;
+  overflow: hidden;
+}
+
+.app-paned {
+  height: 100vh;
+}
+
+.app-paned .preview {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.app-paned .chart {
+  flex: 1;
+  max-height: none;
 }
 
 /* The SVG is the flex item; this wrapper only carries the markup. */
@@ -1218,6 +1239,7 @@ input[type="checkbox"] {
 }
 
 /* A chart type that is a table takes the frame's width and grows to its rows, up to the chart's cap. */
+
 .table-cell > .flint-table {
   height: 100%;
 }

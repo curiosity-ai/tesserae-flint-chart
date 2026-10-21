@@ -75,13 +75,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for attempt in {1..30}; do
-            if npm view "flint-chart@${js_version}" version >/dev/null 2>&1; then
-              npm view "flint-chart@${js_version}" version
+          # Ask the registry itself: an earlier npm view cached the old packument for ~5 minutes
+          # (max-age=300), which a plain npm view keeps serving. A large package can also take
+          # several minutes to spread through npm's CDN, so wait up to 20 minutes.
+          for attempt in {1..60}; do
+            if curl -fsS -H 'Cache-Control: no-cache' "https://registry.npmjs.org/flint-chart/${js_version}" >/dev/null 2>&1 \
+              && npm view "flint-chart@${js_version}" version --prefer-online >/dev/null 2>&1; then
+              npm view "flint-chart@${js_version}" version --prefer-online
               exit 0
             fi
-            echo "Waiting for flint-chart@${js_version} to be visible on npm (${attempt}/30)..."
-            sleep 10
+            echo "Waiting for flint-chart@${js_version} to be visible on npm (${attempt}/60)..."
+            sleep 20
           done
           echo "::error::flint-chart@${js_version} did not become visible on npm in time."
           exit 1
@@ -102,13 +106,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for attempt in {1..30}; do
-            if npm view "flint-chart-mcp@${mcp_version}" version >/dev/null 2>&1; then
-              npm view "flint-chart-mcp@${mcp_version}" version
+          # Ask the registry itself: an earlier npm view cached the old packument for ~5 minutes
+          # (max-age=300), which a plain npm view keeps serving. A large package can also take
+          # several minutes to spread through npm's CDN, so wait up to 20 minutes.
+          for attempt in {1..60}; do
+            if curl -fsS -H 'Cache-Control: no-cache' "https://registry.npmjs.org/flint-chart-mcp/${mcp_version}" >/dev/null 2>&1 \
+              && npm view "flint-chart-mcp@${mcp_version}" version --prefer-online >/dev/null 2>&1; then
+              npm view "flint-chart-mcp@${mcp_version}" version --prefer-online
               exit 0
             fi
-            echo "Waiting for flint-chart-mcp@${mcp_version} to be visible on npm (${attempt}/30)..."
-            sleep 10
+            echo "Waiting for flint-chart-mcp@${mcp_version} to be visible on npm (${attempt}/60)..."
+            sleep 20
           done
           echo "::error::flint-chart-mcp@${mcp_version} did not become visible on npm in time."
           exit 1
@@ -119,9 +127,9 @@ jobs:
           set -euo pipefail
           if [ "${js_needs_publish}" = true ]; then
             npm dist-tag ls flint-chart
-            npm view "flint-chart@${js_version}" name version license repository.url
+            npm view "flint-chart@${js_version}" name version license repository.url --prefer-online
           fi
           if [ "${mcp_needs_publish}" = true ]; then
             npm dist-tag ls flint-chart-mcp
-            npm view "flint-chart-mcp@${mcp_version}" name version license repository.url bin
+            npm view "flint-chart-mcp@${mcp_version}" name version license repository.url bin --prefer-online
           fi

@@ -205,7 +205,7 @@ export const updatesShape = {
     )
     .optional()
     .describe(
-      'ChartUpdate layers the chart shows at open: state, where interaction_spec is behaviour. Call get_flint_skill with skill "interaction", section "Update the chart", before you write one. To change them, call update_chart with new layers, then show.',
+      'ChartUpdate layers the chart shows at open: state, where interaction_spec is behaviour. Call get_flint_skill with skill "interaction", section "Update the chart", before you write one. To change them, pass the chart again with new layers to show.',
     ),
 };
 

@@ -23,7 +23,7 @@ other backends leave `interaction_spec` and updates untouched.
 | A gesture or a behaviour on the chart: "highlight on click", "zoom", "brush a period", "make it interactive", "add behaviour to this chart". | One `interaction_spec`: `{ "interactions": [ ... ] }`, presets only. | Add interactions to the chart |
 | A change to a chart that is already on screen, from outside: "point out Japan", "frame 2010 to 2020", "note this value", "reorder by value", an agent answering a user with the chart. | One `ChartUpdate`: `{ "id", "ops": [ ... ] }`. | Update the chart |
 | Code around a chart: "in my app", "on click open the record", "a panel that follows the hover". | TypeScript against `flint-chart/interactive`: mount, presets as factories, `onChange`, `dispatch`. | Use Flint in an application |
-| Code across charts or over time: "link these two charts", "a table that follows the selection", "play the years". | `linkCharts` or `useLinkedCharts`; `dispatch` on a timer. On an MCP board, `link_spec` instead (board skill, "Step 5 — connect them"). | Link charts, and drive a chart over time |
+| Code across charts or over time: "link these two charts", "a table that follows the selection", "play the years". | `linkCharts` or `useLinkedCharts`; `dispatch` on a timer. On an MCP board, `link_spec` instead (board skill, "Step 5 — connect them"). | Link charts |
 | A gesture no preset gives: "drag along the path", "draw a guess", "a rule for the box", "a lens the app draws". | A `CanvasInteractionDef`: a trigger, affordances, a handler. | When no preset fits |
 
 - **DO** use only the names in this skill: preset types, options, ops, states,
@@ -37,14 +37,13 @@ other backends leave `interaction_spec` and updates untouched.
 ## Which workflow the user is asking for
 
 - **Presets through the MCP tools:** put the object beside `chart_spec` as
-  `interaction_spec` in the input of `create_chart`, which reports its
-  warnings; `validate_chart` reports the same without rendering, for when you
-  do not draw. `list_interaction_presets`
+  `interaction_spec` in the chart input; `validate_chart` reports its warnings
+  without drawing, and `show` draws it with the same report. `list_interaction_presets`
   with `chartType` lists the presets that chart type supports, what each
   does, and its options.
 - **An update through the MCP tools:** there is no handle on the chart. Pass
-  the layers as the `updates` argument of `create_chart` or `update_chart`,
-  beside the input; see "Step 4 — send the layer and read the result".
+  the layers as the `updates` argument beside the input, to `validate_chart`
+  and `show`; see "Step 4 — send the layer and read the result".
 - **Code, only when the user asks for code:** mount with `mountChart`, or
   `<FlintChart>` in React; presets as factory calls, updates with
   `applyUpdate`, state with `getState` and `onChange`. The programming API
@@ -210,8 +209,8 @@ The object is `{ "interactions": [ ... ] }`, beside `chart_spec` as
 }
 ```
 
-`create_chart` checks the object when it builds the chart; `validate_chart`
-runs the same check in code or CI. Do not run both for the same chart. A malformed entry
+`validate_chart` checks the object without drawing, and `show` runs the same
+check when it draws. A malformed entry
 is an error: an unknown `type`, an option beside `type`, an `id` inside
 `options`, a bare string entry, a missing required option, an unsupported
 `reset` gesture, a duplicate `id`. A dropped or yielded entry is a warning
@@ -514,7 +513,7 @@ The y axis shows life from 70 to 86.
 The state is in field terms: what the chart is after the reader's panel edits,
 each op of your updates as applied (✓) or not and why (✗), what the reader
 selected, hid or filtered, and the viewport on view when the chart navigates.
-`validate_chart`, `create_chart` and `update_chart` return the same report before the
+`validate_chart` and `show` return the same report before the
 reader touches the chart, with `User interactions: none.` From it, decide what the
 reader should see next: which rows stand out, what one note says, which range
 frames them. The rows you were given are the source of every value; the chart
@@ -654,8 +653,8 @@ it shows: fix an unresolved key or drop an unsupported op before describing
 the chart.
 
 **From the MCP view.** There is no `applyUpdate` to call. Pass the same layers
-as the `updates` argument of `create_chart`, beside the chart input, not
-inside it:
+as the `updates` argument beside the chart input, not inside it, to
+`validate_chart` and then to `show` as part of `chart`:
 
 ```json
 {
@@ -671,21 +670,20 @@ inside it:
 ```
 
 `show` opens the chart with the layers applied, with the same look as a
-user action. To show the chart in a new state, call `update_chart` with its id
-and the layers wanted now, then `show` again. Each `show` opens a new card with
+user action. To show the chart in a new state, call `show` again with the same
+input and the layers wanted now. Each `show` opens a new card with
 exactly those layers; earlier cards keep what they showed. The argument is state, and `interaction_spec` is behaviour, so
 each stays where it is. The reader's own brush or selection does not survive
 the new view; the context message reports it in field terms, and it is
 carried as a layer when it still serves the reader.
 
-Call `create_chart` directly; it validates the input and `updates`
-itself, so do not call `validate_chart` first. A malformed layer or an invalid
-spec is an error and keeps nothing. Otherwise the result is the report above,
-one line per op, led by a count when an op did not apply. The chart draws
-without a ✗ op: fix it with `update_chart` (a key no row has, an overlay
-encoding written as `"x": "start"` instead of `{ "field": "start" }`, a
-viewport with no navigation preset) before you call `show`, or tell the reader
-what is missing. The
+Check the input and `updates` with `validate_chart` first. A malformed layer
+or an invalid spec is an error, and `show` draws nothing for it. Otherwise the
+result is the report above, one line per op, led by a count when an op did not
+apply. The chart draws without a ✗ op: fix it in the layer (a key no row has,
+an overlay encoding written as `"x": "start"` instead of `{ "field": "start" }`,
+a viewport with no navigation preset) before you call `show`, or tell the
+reader what is missing. The
 reader's later brushes and clicks reach you with their next message, not in
 the same turn.
 
@@ -834,7 +832,15 @@ canvas interaction, before the chart reacts: `detail.chartId`,
 a handler gets. It fires for a definition whose `handle` returns `null`, so it
 is the path for a host that draws its own response to a gesture.
 
-## Link charts, and drive a chart over time
+Things the surface holds fixed: no preset changes the layout, so a zoom never
+recomputes the bar step, the ticks, or the domain (filter the rows and mount
+again for that); the mute level is set at mount; Escape reaches a chart after
+a press on it, and only that chart; a preset's toggle (`select`,
+`click-highlight`) needs Shift, Ctrl, or Meta, and a plain second click
+replaces; a press on an overlay path resolves to no mark, so a `click-none`
+reset on the definition that drew the overlay clears it at that press.
+
+## Link charts
 
 `linkCharts` links mounted charts on the fields they share. A selection on one
 chart (a click, a brush, a group focus, a hover) becomes one condition, a part
@@ -911,18 +917,11 @@ source.onChange(({ phase, interactionId, state }) => {
 });
 ```
 
-`dispatch` is also how an application drives a chart over time: a playback
-loop dispatches one frame per animation frame, and the handler returns the
-whole layer for that frame. Linked charts share one `theme_spec` so a value
-has one colour everywhere.
+Linked charts share one `theme_spec` so a value has one colour everywhere.
 
-Things the surface holds fixed: no preset changes the layout, so a zoom never
-recomputes the bar step, the ticks, or the domain (filter the rows and mount
-again for that); the mute level is set at mount; Escape reaches a chart after
-a press on it, and only that chart; a preset's toggle (`select`,
-`click-highlight`) needs Shift, Ctrl, or Meta, and a plain second click
-replaces; a press on an overlay path resolves to no mark, so a `click-none`
-reset on the definition that drew the overlay clears it at that press.
+The same `dispatch` drives a chart over time: a playback loop dispatches one
+frame per animation frame, and the handler returns the whole layer for that
+frame.
 
 ## Worked examples
 
@@ -1079,7 +1078,7 @@ For an `interaction_spec`:
 4. `groupBy` and `seriesBy` are present where required, and name bound fields.
 5. At most one entry owns the plot drag, the double-click, the legend click,
    and the retained mark focus.
-6. `create_chart` (or `validate_chart`, in code or CI) returns no warning.
+6. `validate_chart` returns no warning.
 
 For a `ChartUpdate`:
 
